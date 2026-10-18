@@ -217,6 +217,6 @@ Then restart your gateway or Desktop backend. You can delete `$HERMES_HOME/plugi
 
 MIT License. See [LICENSE](LICENSE).
 
-Copyright (c) 2026 thebergerking91 ([thebergerking91](https://github.com/thebergerking91)). Built with Hermes Agent by [Nous Research](https://github.com/NousResearch/hermes-agent).
+Copyright (c) 2026 [thebergerking91](https://github.com/thebergerking91). Built with Hermes Agent by [Nous Research](https://github.com/NousResearch/hermes-agent).
 
 Technical notes for maintainers: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Version history: [CHANGELOG.md](CHANGELOG.md).

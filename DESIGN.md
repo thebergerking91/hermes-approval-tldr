@@ -96,7 +96,7 @@ changes *displayed* text). The plugin never approves or denies on its own.
 name: approval-tldr
 version: 0.1.0
 description: Plain-English "what this does and what the risk is" paragraph on every dangerous-command approval prompt. Opt-in approval transport; Hermes keeps all authority.
-author: thebergerking91 (thebergerking91)
+author: thebergerking91
 license: MIT
 manifest_version: 2
 api_version: 1
