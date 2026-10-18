@@ -196,6 +196,24 @@ Also: `get_current_session_key()` on the worker returns `"default"`, never the r
 stash value is trustworthy. Keep `present_fn` synchronous. The LLM time counts against the host's
 `approvals.timeout` (300 s here), so `llm_timeout_s=10` leaves ample room.
 
+### 4.7 Post-review amendments (Opus review, 2026-10-18) — implemented in v0.1.0
+
+- **Desktop layout changed** (B2): the card's command box is ~7 visible lines and scrolls, so the
+  order is now risk line → `── command ──` → real command → `── what it does ──` → body capped at
+  `desktop_max_words` (default 60). §2's Desktop mock-up is superseded by README.md.
+- **Comment stripper** (B1): `#` starts a comment only at word start (line start or after whitespace,
+  `;`, `&`, `|`, `(`, `{`), never when escaped/quoted; the model is told comments were removed.
+- **Deadline discipline** (S1): after the LLM call, `present()` checks `/stop` and a finished-set fed by
+  `post_approval_response`; if the host already decided it returns deny without dispatching. The gateway
+  wait is withdrawn (`tools.approval.withdraw_gateway_approval`) 5 s before the host deadline; `on_post`
+  withdraws the plugin's card too, so no orphan Telegram card can swallow the next tap.
+- **`notify_failed` raises** (S3) → builtin fallback, so a delivery failure is not reported as a user denial.
+- Telegram/Discord budgets measured after `html.escape` (S2); random fence tag (S5); slash commands
+  neutralised regardless of punctuation (S6); blank label falls back to default (S7); retry only on
+  `PluginLlmTrustError` with ≥2 s left (S4).
+- Internal seams now number eight (listed in docs/ARCHITECTURE.md), not two. Our queue entry is not
+  always the only one in a session (parallel tool calls, post-fallback).
+
 ## 5. Safety properties (what the plugin can never do)
 
 1. Cannot execute, approve, or deny anything itself — only relays the human's button/key.
