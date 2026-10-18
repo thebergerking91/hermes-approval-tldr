@@ -1,0 +1,1 @@
+I am not a software programmer, so when hermes agent sends it's approval prompts and just shows script, i don't understand what the risk is. this project will design a plugin so that hermes agent approval prompts summarize what is being asked for approval and the risks in 1 paragraph in plain english.

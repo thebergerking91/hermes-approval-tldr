@@ -1,0 +1,35 @@
+name: approval-tldr
+version: 0.1.0
+description: Plain-English "what this does and what the risk is" paragraph on every dangerous-command approval prompt. Opt-in approval transport; Hermes keeps all authority.
+author: thebergerking91 (thebergerking91)
+license: MIT
+manifest_version: 2
+api_version: 1
+requires_hermes: ">=0.22.2"
+provides_hooks: [pre_approval_request, post_approval_response]
+config_schema:
+  label:
+    type: string
+    default: "AI summary (may be wrong — read the command)"
+    description: "Prefix shown before the paragraph"
+  max_words:
+    type: integer
+    default: 90
+    description: "Upper bound for the summary paragraph"
+  llm_timeout_s:
+    type: number
+    default: 10
+    description: "Seconds to wait for the summary before showing the prompt without it"
+  desktop_inline:
+    type: boolean
+    default: true
+    description: "Put the summary inside the command box for Desktop sessions (the card hides the description, upstream #133398)"
+  desktop_max_words:
+    type: integer
+    default: 60
+    description: "Upper bound for the explanation under the command in the Desktop card (clamped 20-200)"
+  language:
+    type: string
+    default: "en"
+    description: "Language for the summary"
+tags: [approvals, security, accessibility, desktop, telegram]
