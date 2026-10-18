@@ -1,6 +1,6 @@
 """Ask the LLM for a plain-English paragraph, and make its answer safe to show.
 
-Why it exists: the operator is not a programmer, so a raw shell command is not enough to decide. The
+Why it exists: the user may not be a programmer, so a raw shell command is not enough to decide. The
 command text is UNTRUSTED (it comes from a possibly prompt-injected agent), so comments are stripped,
 the text is fenced in ``<command>`` tags, and the model is told to ignore directives inside it. The
 model's reply is untrusted too: it is stripped of control characters, ``/approve``-style chat

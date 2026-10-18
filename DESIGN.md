@@ -1,6 +1,6 @@
 # approval-tldr — plain-English approval prompts for Hermes Agent
 
-Status: design approved by the operator 2026-10-18 (option A). See RESEARCH.md for evidence and citations.
+Status: design approved by the maintainer 2026-10-18 (option A). See RESEARCH.md for evidence and citations.
 
 ## 1. The problem (in one paragraph)
 
@@ -10,7 +10,7 @@ command or Python script. A non-programmer cannot tell `find . -name "*.pyc" -de
 (#6959) and the Desktop card does not even show the one-line reason it already has (#133398). So the
 choice collapses into a reflex: always approve, or always deny. This plugin puts a one-paragraph,
 plain-English summary of **what the command will do** and **what the risk is** on every approval
-prompt, on every surface the operator uses (Desktop app, Telegram, CLI), without touching Hermes core.
+prompt, on every surface the user approves from (Desktop app, Telegram, CLI), without touching Hermes core.
 
 ## 2. What the user will see
 
@@ -223,7 +223,7 @@ stash value is trustworthy. Keep `present_fn` synchronous. The LLM time counts a
    detector label stay visible.
 5. LLM failure degrades to a placeholder, never to a missing prompt or an auto-answer.
 6. Plugin failure degrades to the built-in prompt (`transport_fallback: builtin`), never to a silent deny
-   — the operator accepts the raw prompt over a blocked agent.
+   — the raw prompt is preferable to a blocked agent.
 7. Sends the redacted command text to the configured LLM provider (same provider smart approvals already
    use). Disclosed in README. No other network, no files written except plugin logs via `logging`.
 
@@ -247,7 +247,7 @@ stash value is trustworthy. Keep `present_fn` synchronous. The LLM time counts a
 2. Host-contract tests: `ApprovalRequest.create` + `invoke_approval_transport` end-to-end with a fake notify_cb that
    answers via `tools.approval.resolve_gateway_approval` (or the real queue API) — proves the worker-thread wait works.
 3. `hermes plugins validate <dir>` and `hermes plugins doctor <dir> --ci` clean.
-4. Live smoke on the operator's machine (his gateway/Desktop restarts, not mine): enable plugin, select transport with
+4. Live smoke on the operator's machine (operator restarts the gateway/Desktop backend): enable plugin, select transport with
    builtin fallback, trigger `python -c "print(1)"` from (a) a Desktop session, (b) Telegram, (c) `hermes` CLI;
    confirm summary visible, buttons work, denial/approval reaches the agent correctly, `hermes logs` show no errors.
 5. Reviewer (Opus) pass on the diff before calling it done; verifier re-runs the test suite.
@@ -257,4 +257,4 @@ stash value is trustworthy. Keep `present_fn` synchronous. The LLM time counts a
 - Develop in this folder; install by symlink `~/.hermes/plugins/approval-tldr → <project>/plugin` (or copy).
 - Ship disabled; enable + select transport only after tests and smoke pass.
 - Publish to `github.com/thebergerking91/hermes-approval-tldr` after smoke; then comment on #86084 / #45290
-  with a link (the operator approved). Catalog submission optional later (rules 12/13 — must disclose LLM egress; never auto-approve — already satisfied).
+  with a link (done 2026-10-18). Catalog submission optional later (rules 12/13 — must disclose LLM egress; never auto-approve — already satisfied).

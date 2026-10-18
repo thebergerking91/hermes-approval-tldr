@@ -1,6 +1,6 @@
 """Per-surface display strings and length budgets.
 
-Why it exists: each place the operator answers approvals renders different fields. The Desktop card
+Why it exists: each surface the user answers approvals on renders different fields. The Desktop card
 only draws the command box (it hides the description), Telegram/Discord cap the reason line, and
 the CLI panel shows the description as its header. This module decides where the AI paragraph
 goes for each of them while keeping the real command and the detector's label visible. Only the
