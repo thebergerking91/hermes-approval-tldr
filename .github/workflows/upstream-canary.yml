@@ -1,0 +1,157 @@
+name: Upstream canary
+
+# Why: approval-tldr relies on a handful of internal Hermes functions (docs/ARCHITECTURE.md).
+# This job checks, daily and on every push, that those seams still exist with the same shape in
+# upstream hermes-agent — both on `main` (early warning) and on the latest stable tag (what users
+# actually run) — and runs the full plugin test suite against each. On failure it opens or
+# updates ONE issue per lane so the maintainer is emailed before `hermes update` bites.
+#
+# Light mode: the plugin only needs hermes-agent importable on PYTHONPATH plus three third-party
+# packages; no full Hermes install, no venv manager.
+
+on:
+  schedule:
+    - cron: "17 13 * * *"   # daily 13:17 UTC (06:17 PT)
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: upstream-canary
+  cancel-in-progress: true
+
+jobs:
+  canary:
+    name: ${{ matrix.lane }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        lane: [main, stable]
+    steps:
+      - name: Checkout plugin
+        uses: actions/checkout@v4
+        with:
+          path: plugin
+
+      - name: Checkout hermes-agent (full tags so the stable lane can resolve one)
+        uses: actions/checkout@v4
+        with:
+          repository: NousResearch/hermes-agent
+          path: hermes-agent
+          fetch-depth: 0
+
+      - name: Resolve upstream ref
+        id: ref
+        shell: bash
+        working-directory: hermes-agent
+        run: |
+          # Only trusted, workflow-controlled values are interpolated here (matrix.lane); nothing
+          # from issue/PR/commit text reaches a shell, so there is no injection surface.
+          if [ "${{ matrix.lane }}" = "stable" ]; then
+            # Newest release tag by creation date, skipping "+canary"/"-rc" builds. Upstream tags
+            # each release twice (semver v0.22.2 and date v2026.9.24, same commit); either is fine.
+            tag=$(git for-each-ref --sort=-creatordate --format='%(refname:short)' refs/tags \
+                  | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
+            echo "stable tag: $tag"
+            git checkout -q "$tag"
+          fi
+          echo "sha=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+          echo "desc=$(git describe --tags --always)" >> "$GITHUB_OUTPUT"
+          echo "Testing against hermes-agent $(git describe --tags --always)"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install the few runtime deps the plugin's import graph touches
+        run: python -m pip install -q pytest requests psutil "ruamel.yaml"
+
+      - name: Seam check
+        id: seams
+        shell: bash
+        env:
+          PYTHONPATH: ${{ github.workspace }}/hermes-agent
+          HERMES_HOME: ${{ runner.temp }}/hermes-home
+        run: |
+          mkdir -p "$HERMES_HOME"
+          python plugin/scripts/seam_check.py --json "$RUNNER_TEMP/seams.json" | tee "$RUNNER_TEMP/seams.txt"
+
+      - name: Plugin test suite against this upstream
+        id: tests
+        if: always()
+        shell: bash
+        working-directory: plugin
+        env:
+          PYTHONPATH: ${{ github.workspace }}/hermes-agent
+          HERMES_HOME: ${{ runner.temp }}/hermes-home
+        run: python -m pytest tests -q 2>&1 | tee "$RUNNER_TEMP/tests.txt"
+
+      - name: Open or update the break issue
+        if: failure()
+        uses: actions/github-script@v7
+        env:
+          LANE: ${{ matrix.lane }}
+          UPSTREAM: ${{ steps.ref.outputs.desc }}
+          SEAMS_OK: ${{ steps.seams.outcome }}
+          TESTS_OK: ${{ steps.tests.outcome }}
+        with:
+          script: |
+            const fs = require('fs');
+            const read = p => { try { return fs.readFileSync(p, 'utf8').slice(-6000); } catch { return '(no output)'; } };
+            const seams = read(`${process.env.RUNNER_TEMP}/seams.txt`);
+            const tests = read(`${process.env.RUNNER_TEMP}/tests.txt`);
+            const lane = process.env.LANE;
+            const title = `Upstream break (${lane}): hermes-agent ${process.env.UPSTREAM} changed something approval-tldr relies on`;
+            const marker = `<!-- upstream-canary:${lane} -->`;
+            const run = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const body = [
+              marker,
+              `**Lane:** \`${lane}\` · **hermes-agent:** \`${process.env.UPSTREAM}\` · **Run:** ${run}`,
+              '',
+              `Seam check: **${process.env.SEAMS_OK}** · Plugin tests: **${process.env.TESTS_OK}**`,
+              '',
+              lane === 'stable'
+                ? '⚠️ This is the **stable** lane — the version `hermes update` installs. Patch the plugin before updating.'
+                : 'ℹ️ This is `main`. It may not reach a stable release for a while; plan a patch, no rush.',
+              '',
+              '<details><summary>Seam check output</summary>', '', '```', seams, '```', '</details>',
+              '',
+              '<details><summary>Test output (tail)</summary>', '', '```', tests, '```', '</details>',
+              '',
+              'Fix path: update the adapter(s) in `tldr/redispatch.py`, refresh the expected signatures in `scripts/seam_check.py`, bump `requires_hermes` in `plugin.yaml`, then close this issue.',
+            ].join('\n');
+            const { data: open } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner, repo: context.repo.repo, state: 'open', labels: 'upstream-canary', per_page: 50 });
+            const existing = open.find(i => (i.body || '').includes(marker));
+            if (existing) {
+              await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo,
+                issue_number: existing.number, body: `Still failing on ${run}\n\n${body}` });
+              core.info(`Updated issue #${existing.number}`);
+            } else {
+              const { data: issue } = await github.rest.issues.create({ owner: context.repo.owner, repo: context.repo.repo,
+                title, body, labels: ['upstream-canary'] });
+              core.info(`Opened issue #${issue.number}`);
+            }
+
+      - name: Close the break issue when green again
+        if: success()
+        uses: actions/github-script@v7
+        env:
+          LANE: ${{ matrix.lane }}
+          UPSTREAM: ${{ steps.ref.outputs.desc }}
+        with:
+          script: |
+            const marker = `<!-- upstream-canary:${process.env.LANE} -->`;
+            const { data: open } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner, repo: context.repo.repo, state: 'open', labels: 'upstream-canary', per_page: 50 });
+            for (const i of open.filter(i => (i.body || '').includes(marker))) {
+              await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo,
+                issue_number: i.number, body: `Green again against hermes-agent \`${process.env.UPSTREAM}\`. Closing.` });
+              await github.rest.issues.update({ owner: context.repo.owner, repo: context.repo.repo, issue_number: i.number, state: 'closed' });
+            }

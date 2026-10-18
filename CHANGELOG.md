@@ -7,7 +7,7 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 ## [0.1.0] - Unreleased
 
 ### Added
-- Opt-in approval transport `tldr` for Hermes Agent (requires Hermes >= 0.22.0, `plugins.isolation: in_process`).
+- Opt-in approval transport `tldr` for Hermes Agent (requires Hermes >= 0.22.2, `plugins.isolation: in_process`).
 - Plain-English summary paragraph (what it does, what it touches, reversibility, `Risk: LOW|MEDIUM|HIGH`) on shell-command and `execute_code` approval prompts.
 - Per-surface display: Telegram/Discord/other gateway (summary in the description), Desktop (risk line, then the real command, then the explanation, all inside the command box; workaround for upstream #133398), CLI (summary in the panel header).
 - Auxiliary task `approval_summary` so the summary model can be chosen with `auxiliary.approval_summary.provider` / `.model`.
@@ -15,6 +15,7 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Fallbacks: "AI summary unavailable" placeholder when the model fails or times out; Hermes' built-in prompt when the plugin fails (`transport_fallback: builtin`).
 - Safety: prompt-injection-hardened summarizer, output sanitizing, choice clamped to the choices Hermes offered, definite deny on any non-answer, `/stop` propagation.
 - Documentation: README, `docs/ARCHITECTURE.md`, MIT license.
+- Upstream canary: `scripts/seam_check.py` plus a daily GitHub Actions workflow that tests the plugin against hermes-agent `main` and the newest release tag and opens/closes an `upstream-canary` issue when an internal seam drifts.
 
 ### Security
 Fixes from the security review, all before the first release:

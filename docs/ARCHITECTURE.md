@@ -110,9 +110,24 @@ The Desktop card renders only the `command` field, in a scrolling box about 7 li
 
 Order: risk verdict, exact command, longer explanation. The explanation goes last because that is the part that can be cut off by the box. `desktop_max_words` (default 60) keeps it short; `max_words` (default 90) applies to the other surfaces. The executed command is never altered, only this display copy.
 
+## Upstream canary (automatic)
+
+`.github/workflows/upstream-canary.yml` runs daily (13:17 UTC) and on every push. For two lanes —
+hermes-agent `main` and its newest `vX.Y.Z` release tag — it checks out upstream, runs
+`scripts/seam_check.py` (imports every internal seam above and compares its `inspect.signature()`
+to the one recorded from v0.22.2, plus the `ApprovalRequest` field set and the hook kwargs on the
+transport path), then runs the full plugin test suite with upstream on `PYTHONPATH`. No Hermes
+install: only `pytest requests psutil ruamel.yaml` are needed. On failure it opens (or comments on)
+one issue per lane labelled `upstream-canary`; when the lane is green again it closes that issue.
+GitHub emails the repo owner on each. Read a `main` failure as "plan a patch" and a `stable`
+failure as "patch before `hermes update`". After fixing a seam, refresh the expected signature in
+`scripts/seam_check.py` so the canary stops firing.
+
+Run it locally: `PYTHONPATH=~/.hermes/hermes-agent python scripts/seam_check.py`.
+
 ## When upstream changes — checklist
 
-Run on every Hermes upgrade and before every release.
+Run on every Hermes upgrade and before every release (the canary covers the first two items daily).
 
 - [ ] `hermes plugins validate <dir>` and `hermes plugins doctor <dir> --ci` are clean.
 - [ ] The test suite passes against the new Hermes. It pins the signatures of every internal seam listed above (`_gateway_notify_cb`, `withdraw_gateway_approval`, `_await_gateway_decision`, `prompt_dangerous_approval`, `_get_approval_callback`, `acting_for_tid`/`is_interrupted`, `get_session_env`, `_get_approval_timeout`). A failure here means one of seams 2-9 moved.

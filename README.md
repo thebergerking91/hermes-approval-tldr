@@ -72,7 +72,7 @@ A plugin lets you opt in, and keeps the trade-off (extra delay, possible wrong s
 
 ## Install
 
-You need Hermes Agent 0.22.0 or newer.
+You need Hermes Agent 0.22.2 or newer.
 
 1. Put this folder at `$HERMES_HOME/plugins/approval-tldr`. `$HERMES_HOME` is normally `~/.hermes`. Either copy the folder or link it:
 
@@ -169,7 +169,7 @@ Honest caveats to that last promise:
 - **Only shell commands and Python scripts (`execute_code`) are covered.** Other prompts keep the stock look: saving a memory, writing to protected files, MCP consent, and approvals triggered by other plugins' rules. Hermes does not route those through approval plugins yet (upstream #133946, #120859).
 - **Smart approvals mode.** If `approvals.mode` is `smart`, Hermes' own checker sometimes approves a command without asking you. No prompt appears then, so no summary either. You see the summary only when Hermes does ask you.
 - **A small delay.** Each prompt waits for the AI call first. The aim is about 3 seconds. It is capped at `llm_timeout_s`. That time counts against Hermes' overall approval timeout, which is long enough that the 10-second default does not matter.
-- **It relies on Hermes internals.** The plugin calls a handful of internal Hermes functions (listed in docs/ARCHITECTURE.md) to show the prompt and wait for your answer. A Hermes update can rename them. If that happens you get the stock prompt again, not a crash. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+- **It relies on Hermes internals.** The plugin calls a handful of internal Hermes functions (listed in docs/ARCHITECTURE.md) to show the prompt and wait for your answer. A Hermes update can rename them. If that happens you get the stock prompt again, not a crash. A daily GitHub Actions check ("upstream canary") tests this plugin against the latest Hermes code and release and opens an issue in this repo when something it relies on moves, so you hear about it before you update. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 - **The Desktop workaround is a workaround.** The summary goes in the command box because the Desktop card hides the description (#133398). The box shows about 7 lines and scrolls, which is why the risk line and the command come first and the longer explanation comes last.
 - **Unattended runs are unchanged.** Scheduled (cron) jobs, quiet `-q` runs and similar sessions never ask a human through approval plugins (upstream #138083).
 - **No answer means "deny".** If nobody can answer a prompt (timeout, the card is withdrawn, or you send `/stop`), the plugin reports a denial to Hermes, so the agent is told you denied it. That is the safe direction.
