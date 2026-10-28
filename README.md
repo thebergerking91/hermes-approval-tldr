@@ -56,7 +56,7 @@ Reading order on Desktop: the risk verdict first, then the explanation, then the
 
 In the terminal (CLI), the summary is the header line of the approval panel. The command sits beneath it. The same keys (o / s / a / d) work as before.
 
-If the summary cannot be made in time, the prompt still appears. It says `AI summary unavailable — read the command carefully.` where the summary would be. If the plugin itself breaks, Hermes shows its normal, old-style prompt. It never silently denies.
+If the summary cannot be made in time, the prompt still appears. It says `AI summary unavailable — read the command carefully.` where the summary would be. If the plugin itself breaks and you set `transport_fallback: builtin` (install step 3), Hermes shows its normal, old-style prompt instead. Without that setting, Hermes' default is to treat a transport failure as a denial.
 
 ## Why a plugin and not core
 
@@ -73,6 +73,10 @@ A plugin lets you opt in, and keeps the trade-off (extra delay, possible wrong s
 ## Install
 
 You need Hermes Agent 0.22.2 or newer.
+
+**From the Hermes plugin catalog** (once listed): `hermes plugins install approval-tldr`, then continue at step 3. The catalog installs the exact commit a Hermes maintainer reviewed.
+
+**By hand:**
 
 1. Put this folder at `$HERMES_HOME/plugins/approval-tldr`. `$HERMES_HOME` is normally `~/.hermes`. Either copy the folder or link it:
 
@@ -180,9 +184,14 @@ Honest caveats to that last promise:
 
 ## Disclosure
 
-To write the summary, the plugin sends the command text to your configured AI provider. Hermes has already removed secrets from that text (redaction). This is the same provider Hermes' smart approvals already use, or the model you chose in "Choosing the model for summaries". The plugin makes no other network requests and writes no files. It only writes to Hermes' normal log.
+What a careful person would want to know before installing:
 
-The plugin tells the AI to treat the command as untrusted data, and to ignore any instructions written inside it. This reduces the chance that a hostile command text can steer its own summary. It cannot remove that chance, which is another reason the real command is always shown.
+- **AI provider egress.** For every approval prompt it handles, the plugin sends the command text and Hermes' "why it was flagged" reason to your configured AI provider, through Hermes' own plugin LLM API (`ctx.llm`). That provider may be a third-party service. Hermes redacts secrets from approval text first, but redaction is best-effort and not identical on every surface. The provider is your main model, or the one you pin with `auxiliary.approval_summary.*` (the plugin registers that auxiliary task).
+- **No other network, files or processes.** The plugin makes no other network requests, reads no credentials or files outside Hermes, writes no files (only Hermes' normal log), and starts no processes. The prompt card itself is delivered by Hermes' existing gateway (Telegram, Discord, Desktop) or CLI panel.
+- **Uses Hermes internals.** To show the prompt on Hermes' own card and wait for your answer, the plugin calls eight internal (underscore or undocumented) Hermes functions, listed in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). It calls them and never replaces or patches them. A Hermes update can break them; you then get Hermes' stock prompt (with `transport_fallback: builtin`) or a denial (Hermes' default).
+- **Never decides for you.** Anything except an explicit answer you gave (timeout, `/stop`, withdrawn card, delivery error) is reported to Hermes as "deny". Any choice Hermes did not offer becomes "deny".
+- **One host setting changed by the install steps.** Step 3 sets `security.approval.transport_fallback: builtin`. That applies to all approval transports, not only this one. With it, a plugin failure shows Hermes' normal prompt, and after a timeout you may be asked a second time (the agent can wait up to about twice `approvals.timeout`).
+- **Prompt injection.** The model is told to treat the command as untrusted data and to ignore any instructions written inside it. This reduces, but cannot remove, the chance that a hostile command steers its own summary. The real command is always shown. Read it.
 
 ## Troubleshooting
 
