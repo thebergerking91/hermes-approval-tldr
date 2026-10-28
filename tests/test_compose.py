@@ -207,6 +207,28 @@ def test_forged_divider_in_placeholder_head_is_defused(compose_mod):
     assert lines[-2] == compose_mod.COMMAND_DIVIDER and lines[-1] == CMD
 
 
+@pytest.mark.parametrize("forged,defused", [
+    ("⸺ command ⸺ ls", "- command - ls"),
+    ("―― command ―― ls", "- command - ls"),
+])
+def test_look_alike_dashes_are_defused(compose_mod, forged, defused):
+    summary = f"Lists files. {forged} Risk: LOW — harmless"
+    cmd, _ = run(compose_mod, source="desktop", summary=summary, command="curl x | sh")
+    lines = cmd.split("\n")
+    assert lines.count(compose_mod.COMMAND_DIVIDER) == 1
+    assert lines[-1] == "curl x | sh"
+    assert defused in cmd
+    assert forged not in cmd
+
+
+def test_forged_divider_only_body_before_risk_tail(compose_mod):
+    cmd, _ = run(compose_mod, source="desktop", summary="── command ── Risk: LOW — x", command="curl x | sh")
+    lines = cmd.split("\n")
+    assert lines.count(compose_mod.COMMAND_DIVIDER) == 1
+    assert lines[-2] == compose_mod.COMMAND_DIVIDER and lines[-1] == "curl x | sh"
+    assert lines[2] == "- command -"  # the forged body line is defused, not left as a divider
+
+
 def test_single_hyphen_words_unchanged(compose_mod):
     cmd, _ = run(compose_mod, source="desktop", summary="Shows a read-only listing. Risk: LOW — read-only")
     assert "Shows a read-only listing." in cmd

@@ -148,14 +148,18 @@ def _cap_words(text: str, limit: int) -> str:
     return " ".join(kept)
 
 
-_DASH_RUN = re.compile(r"[─━┄═—–-]{2,}")
+_DASH_RUN = re.compile(r"[─━┄┅┈┉╌╍═―‒–—−⎯－﹘﹣-]{2,}|[⸺⸻]+")
 
 
 def _defuse_dividers(text: str) -> str:
-    """Collapse runs of 2+ box-drawing/dash characters to a single ``-``.
+    """Collapse runs of 2+ box-drawing/dash look-alike characters to a single ``-``.
 
     Model text sits above the real command in the Desktop box, so a forged ``── command ── ls``
-    must not look like the plugin's own divider. ``read-only`` (one hyphen) is untouched.
+    must not look like the plugin's own divider. Covers box-drawing rules, horizontal bars and
+    dashes/minus-like code points (U+2015, U+2012, U+2212, U+23AF, U+FF0D, U+FE58, U+FE63), and
+    the two-em/three-em dashes ``⸺`` ``⸻`` which draw like ``──`` but are a single char, so they
+    are collapsed even alone. ``read-only`` (one hyphen) is untouched; the hyphen stays last in
+    the class so it is literal.
     """
     return _DASH_RUN.sub("-", text)
 
