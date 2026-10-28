@@ -118,13 +118,13 @@ def test_desktop_command_is_last_even_with_long_summary(compose_mod):
 def test_desktop_max_words_is_configurable(compose_mod):
     summary = " ".join(f"w{i}" for i in range(100)) + ". Risk: LOW — fine."
     cmd, _ = compose_mod.compose("gateway", "", "tui", LABEL, summary, CMD, DESC, True, 25)
-    assert len(cmd.split("\n")[4].split()) <= 25
+    assert len(cmd.split("\n")[2].split()) <= 25
 
 
 def test_desktop_without_risk_tail_is_unknown(compose_mod):
     cmd, _ = compose_mod.compose("gateway", "", "desktop", LABEL, "Does something odd.", CMD, DESC, True)
     assert cmd.split("\n")[0] == f"{LABEL} — Risk: UNKNOWN"
-    assert cmd.endswith("Does something odd.")
+    assert cmd.split("\n")[1:3] == ["── what it does ──", "Does something odd."]
 
 
 def test_split_risk(compose_mod):
