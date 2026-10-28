@@ -188,7 +188,7 @@ Three requirements that come out of it:
 3. **Surface detection happens in the hook, not the worker.** On the worker both env markers are empty.
    Desktop sets `HERMES_SESSION_PLATFORM=""` and `HERMES_SESSION_SOURCE="desktop"|"tui"`
    (`tui_gateway/server.py:1373-1378`, `:1563-1567`); Telegram sets `HERMES_SESSION_PLATFORM="telegram"`
-   (`gateway/run.py:4213`). Read both via `tools.approval_context.get_session_env(...)` inside the hook
+   (`gateway/run.py:4213`). Read both via `gateway.session_context.get_session_env(...)` inside the hook
    callback and stash them with the `session_key`. If `_gateway_notify_cb(session_key)` is `None` and no
    CLI callback was stashed → raise (→ builtin fallback).
 
