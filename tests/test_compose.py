@@ -29,6 +29,12 @@ def test_desktop_inlines_summary_in_command(compose_mod, source):
     assert desc == DESC
 
 
+def test_desktop_multiline_command_ends_with_command_block(compose_mod):
+    multi = "echo one\necho two"
+    cmd, _ = run(compose_mod, source="desktop", command=multi)
+    assert cmd.endswith(f"\n── command ──\n{multi}")
+
+
 def test_desktop_inline_disabled_uses_description(compose_mod):
     cmd, desc = run(compose_mod, source="desktop", inline=False)
     assert cmd == CMD
@@ -125,6 +131,13 @@ def test_desktop_without_risk_tail_is_unknown(compose_mod):
     cmd, _ = compose_mod.compose("gateway", "", "desktop", LABEL, "Does something odd.", CMD, DESC, True)
     assert cmd.split("\n")[0] == f"{LABEL} — Risk: UNKNOWN"
     assert cmd.split("\n")[1:3] == ["── what it does ──", "Does something odd."]
+
+
+def test_desktop_risk_only_summary_has_no_what_it_does_section(compose_mod):
+    cmd, _ = run(compose_mod, source="desktop", summary="Risk: LOW — read only")
+    assert cmd.split("\n")[0] == f"{LABEL} — Risk: LOW — read only"
+    assert "── what it does ──" not in cmd
+    assert cmd.endswith(f"\n── command ──\n{CMD}")
 
 
 def test_split_risk(compose_mod):

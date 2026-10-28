@@ -52,7 +52,7 @@ Reply within 5 minutes.
 └──────────────────────────────────────────────────────────────────┘
 ```
 
-Reading order on Desktop: the risk verdict first, then the explanation, then the exact command. The box shows about 7 lines and scrolls. A long explanation can push the command below what you see, so scroll down to read it before you approve. The explanation is kept short on purpose (see `desktop_max_words` in Settings).
+Reading order on Desktop: the risk verdict first, then the explanation, then the exact command. The box shows about 7 lines and scrolls. With the default settings the explanation is up to 60 words, so the exact command usually sits below what you see. Scroll down to it before you approve. To keep the command in view, lower `desktop_max_words` in Settings.
 
 In the terminal (CLI), the summary is the header line of the approval panel. The command sits beneath it. The same keys (o / s / a / d) work as before.
 
@@ -153,7 +153,7 @@ Restart the gateway or Desktop backend after changing settings.
 - It cannot run, approve, or deny anything by itself. It only passes along the button or key you press.
 - It cannot give you more power than Hermes offered. If Hermes did not offer "Always" for a command, the plugin cannot make that choice happen.
 - It never changes the command that actually runs. Only the text shown to you changes.
-- It never hides that the summary is AI-written. Every prompt labels it, and the real command and the "why it was flagged" reason stay visible. On Desktop the command is the last part of the box, under the explanation.
+- It never hides that the summary is AI-written. Every prompt labels it, and the real command and the "why it was flagged" reason are shown. On Desktop the exact command is at the bottom of the box, under the explanation. Scroll down to it before you approve.
 - If the AI call fails or is slow, you get a prompt that says the summary is unavailable. You never get a missing prompt or an automatic answer.
 - If the plugin breaks, you get Hermes' normal prompt (because of `transport_fallback builtin`). You never get a silent denial.
 
