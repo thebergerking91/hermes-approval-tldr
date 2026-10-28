@@ -7,6 +7,9 @@ This script imports each one against a given hermes-agent checkout and compares 
 with the one the plugin was written against. It prints a human-readable report and exits non-zero
 on any drift, so CI can open an issue BEFORE the user runs `hermes update`.
 
+Dev/CI only: nothing in the plugin imports this file, so its private-import warnings from
+`hermes plugins validate` do not describe the runtime plugin.
+
 Usage:  PYTHONPATH=/path/to/hermes-agent python scripts/seam_check.py [--json out.json]
 """
 
