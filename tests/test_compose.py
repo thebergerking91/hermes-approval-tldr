@@ -20,10 +20,19 @@ def run(compose_mod, surface="gateway", platform="", source="", label=LABEL, sum
 def test_desktop_inlines_summary_in_command(compose_mod, source):
     cmd, desc = run(compose_mod, platform="", source=source)
     body = "Deletes Python cache files under this folder. They rebuild by themselves."
-    assert cmd == (f"{LABEL} — Risk: LOW — harmless\n── command ──\n{CMD}\n"
-                   f"── what it does ──\n{body}")
-    assert cmd.split("\n")[2] == CMD  # the real command starts on line 3, above the fold
+    assert cmd == (f"{LABEL} — Risk: LOW — harmless\n── what it does ──\n{body}\n"
+                   f"── command ──\n{CMD}")
+    lines = cmd.split("\n")
+    assert lines[0].startswith(f"{LABEL} — Risk: LOW")  # verdict is line 1
+    assert cmd.index(body) < cmd.index(CMD)  # summary body comes before the command
+    assert lines[-1] == CMD  # the real command is last
     assert desc == DESC
+
+
+def test_desktop_multiline_command_ends_with_command_block(compose_mod):
+    multi = "echo one\necho two"
+    cmd, _ = run(compose_mod, source="desktop", command=multi)
+    assert cmd.endswith(f"\n── command ──\n{multi}")
 
 
 def test_desktop_inline_disabled_uses_description(compose_mod):
@@ -66,7 +75,8 @@ def test_cli_has_no_cap_and_command_unchanged(compose_mod):
 
 def test_unknown_gateway_puts_summary_in_both(compose_mod):
     cmd, desc = run(compose_mod, surface="gateway", platform="", source="")
-    assert cmd.startswith(f"{LABEL} — Risk: LOW — harmless\n── command ──\n{CMD}")
+    assert cmd.startswith(f"{LABEL} — Risk: LOW — harmless\n── what it does ──\n")
+    assert cmd.endswith(f"── command ──\n{CMD}")
     assert SUMMARY in desc and "Flagged as" in desc
 
 
@@ -94,17 +104,18 @@ def test_real_command_is_never_altered_outside_desktop_box(compose_mod):
         cmd, _ = run(compose_mod, **kw)
         assert cmd == CMD
     cmd, _ = run(compose_mod, source="desktop")
-    assert cmd.split("\n")[2] == CMD and CMD in cmd
+    assert cmd.split("\n")[-1] == CMD and CMD in cmd
 
 
-# ── Desktop layout (B2) ──
-def test_desktop_command_is_line_3_even_with_long_summary(compose_mod):
+# ── Desktop layout (B3: summary first) ──
+def test_desktop_command_is_last_even_with_long_summary(compose_mod):
     long_summary = ("word " * 200) + "Risk: HIGH — " + ("because " * 50)
     cmd, _ = run(compose_mod, source="desktop", summary=long_summary)
     lines = cmd.split("\n")
     assert lines[0].startswith(f"{LABEL} — Risk: HIGH — because")
-    assert lines[1] == "── command ──" and lines[2] == CMD and lines[3] == "── what it does ──"
-    body = lines[4]
+    assert lines[1] == "── what it does ──"
+    body = lines[2]
+    assert lines[3:] == ["── command ──", CMD]
     assert len(body.split()) <= 60 and body.endswith("…")
     assert "Risk:" not in body
     assert len(lines[0]) < len(LABEL) + 40 + 90  # the reason is short
@@ -113,13 +124,20 @@ def test_desktop_command_is_line_3_even_with_long_summary(compose_mod):
 def test_desktop_max_words_is_configurable(compose_mod):
     summary = " ".join(f"w{i}" for i in range(100)) + ". Risk: LOW — fine."
     cmd, _ = compose_mod.compose("gateway", "", "tui", LABEL, summary, CMD, DESC, True, 25)
-    assert len(cmd.split("\n")[4].split()) <= 25
+    assert len(cmd.split("\n")[2].split()) <= 25
 
 
 def test_desktop_without_risk_tail_is_unknown(compose_mod):
     cmd, _ = compose_mod.compose("gateway", "", "desktop", LABEL, "Does something odd.", CMD, DESC, True)
     assert cmd.split("\n")[0] == f"{LABEL} — Risk: UNKNOWN"
-    assert cmd.endswith("Does something odd.")
+    assert cmd.split("\n")[1:3] == ["── what it does ──", "Does something odd."]
+
+
+def test_desktop_risk_only_summary_has_no_what_it_does_section(compose_mod):
+    cmd, _ = run(compose_mod, source="desktop", summary="Risk: LOW — read only")
+    assert cmd.split("\n")[0] == f"{LABEL} — Risk: LOW — read only"
+    assert "── what it does ──" not in cmd
+    assert cmd.endswith(f"\n── command ──\n{CMD}")
 
 
 def test_split_risk(compose_mod):

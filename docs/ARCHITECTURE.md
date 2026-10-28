@@ -19,7 +19,7 @@ tools.approval._human_decision
       (frozen ApprovalRequest)              1. ctx = stash.pop(request_id)            (missing -> raise -> builtin fallback)
                                             2. summary = summarize(request)            (ctx.llm, hard timeout, injection-hardened,
                                                                                         failure -> placeholder text, never blocks)
-                                            3. display = compose(surface/platform)      (Desktop: risk line, command, explanation inside command box;
+                                            3. display = compose(surface/platform)      (Desktop: risk line, explanation, command inside command box;
                                                                                         Telegram/Discord/CLI: summary in description)
                                             4. choice = redispatch(display)             gateway -> tools.approval._gateway_notify_cb(session_key)
                                                                                                   + tools.approval_gateway_wait._await_gateway_decision
@@ -98,17 +98,17 @@ The host gives `present()` one deadline (`approvals.timeout`). The plugin must n
 
 ## Desktop layout
 
-The Desktop card renders only the `command` field, in a scrolling box about 7 lines tall (`apps/desktop/src/components/assistant-ui/tool/approval.tsx`). The real command must therefore come early. The composed `command` string is:
+The Desktop card renders only the `command` field, in a scrolling box about 7 lines tall (`apps/desktop/src/components/assistant-ui/tool/approval.tsx`). The summary comes first and the exact command last (the user chose summary-first). The composed `command` string is:
 
 ```
 {label} — Risk: {verdict}                 <- line 1: label + risk verdict (wraps)
-── command ──                             <- line 2
-{real command}                            <- line 3: exact command, unchanged
-── what it does ──
+── what it does ──                        <- line 2
 {explanation, capped at desktop_max_words}
+── command ──
+{real command}                            <- last: exact command, unchanged
 ```
 
-Order: risk verdict, exact command, longer explanation. The explanation goes last because that is the part that can be cut off by the box. `desktop_max_words` (default 60) keeps it short; `max_words` (default 90) applies to the other surfaces. The executed command is never altered, only this display copy.
+Order: risk verdict, explanation, exact command. Trade-off: a long explanation can push the command below the fold of the box (it scrolls). `desktop_max_words` (default 60) keeps it short; `max_words` (default 90) applies to the other surfaces. The executed command is never altered, only this display copy.
 
 ## Upstream canary (automatic)
 
