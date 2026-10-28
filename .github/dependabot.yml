@@ -1,0 +1,12 @@
+# Why: every action in .github/workflows is pinned to a full commit SHA (tags are mutable, SHAs
+# are not). Dependabot keeps those pins current and updates the trailing "# vX.Y.Z" comment, so
+# the pins never go stale. The plugin itself is stdlib-only, so there is no pip ecosystem entry.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
