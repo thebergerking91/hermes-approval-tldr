@@ -44,7 +44,7 @@ tools.approval._human_decision
 Seam 1 is a public plugin API. Everything after it is underscore/internal and is the real breakage risk. The test suite pins their signatures.
 
 1. **Transport + hook contract** (public plugin API).
-   - `ctx.register_approval_transport(name, present_fn)` — `hermes_cli/plugins.py:430`; frozen `ApprovalRequest` — `hermes_cli/approval_transport.py:40-53`; worker thread — `approval_transport.py:124-128`; requires `plugins.isolation: in_process` — `plugin_isolation.py:41`.
+   - `ctx.register_approval_transport(name, present_fn)` — `hermes_cli/plugins.py:437`; frozen `ApprovalRequest` — `hermes_cli/approval_transport.py:40-53`; worker thread — `approval_transport.py:124-128`; requires `plugins.isolation: in_process` — `plugin_isolation.py:41`.
    - `pre_approval_request` fires on the agent thread, before the transport, with `session_key` and `request_id` — `tools/approval_prompt.py:237-241`. It is the only place to capture the session key, the surface markers and the thread-local CLI callback. `ApprovalRequest` has no `session_key`, and `get_current_session_key()` on the worker returns `"default"`.
    - Only `_COMMAND_GATE` and `_EXECUTE_CODE_GATE` have `transport=True` — `tools/approval.py:689-722`.
 2. **`tools.approval._gateway_notify_cb(session_key)`** (internal) — `tools/approval.py:539-541`. Returns the per-session notify callback. Telegram: `run_turn_runner._approval_notify_sync` (`gateway/run_turn_runner.py:1455-1550`, registered `:1694`). Desktop: `_emit_approval_request` (`tui_gateway/server.py:818`, registered `:1055`). Returns `None` when no callback exists, so the plugin raises and the fallback applies.
@@ -65,7 +65,7 @@ Do not assume the plugin's queue entry is the only one. With parallel tool calls
 
 Supporting facts the design depends on:
 
-- Surface detection must happen in the hook, not on the worker; on the worker both env markers are empty. Desktop sets `HERMES_SESSION_PLATFORM=""` and `HERMES_SESSION_SOURCE="desktop"|"tui"` (`tui_gateway/server.py:1373-1378`, `:1563-1567`). Telegram sets `HERMES_SESSION_PLATFORM="telegram"` (`gateway/run.py:4213`). Read both with `tools.approval_context.get_session_env(...)`. Desktop takes the gateway branch because `HERMES_GATEWAY_SESSION=1` (`tui_gateway/server.py:1391`; `tools/approval.py:815`).
+- Surface detection must happen in the hook, not on the worker; on the worker both env markers are empty. Desktop sets `HERMES_SESSION_PLATFORM=""` and `HERMES_SESSION_SOURCE="desktop"|"tui"` (`tui_gateway/server.py:1373-1378`, `:1563-1567`). Telegram sets `HERMES_SESSION_PLATFORM="telegram"` (`gateway/run.py:4213`). Read both with `gateway.session_context.get_session_env(...)`. Desktop takes the gateway branch because `HERMES_GATEWAY_SESSION=1` (`tui_gateway/server.py:1391`; `tools/approval.py:815`).
 - `/stop` propagation: `is_interrupted()` checks the current thread id (`tools/interrupt.py:57-58`). The hook captures `threading.get_ident()`; `present` sets the `tools.interrupt.acting_for_tid` contextvar to it before waiting (`interrupt.py:32-34`). Without this a stale card can swallow the next approval tap on Telegram.
 - Desktop withdraws the card when no client can answer — `tui_gateway/server.py:838-842` — which arrives as `choice=None`.
 
