@@ -4,9 +4,10 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.1.0] - Unreleased
+## [0.1.0] - 2026-10-27
 
 ### Added
+- Repository hardening for catalog submission: SHA-pinned actions, a pull-request CI gate, a tag-triggered release workflow, Dependabot, CODEOWNERS, SECURITY.md and CONTRIBUTING.md.
 - Opt-in approval transport `tldr` for Hermes Agent (requires Hermes >= 0.22.2, `plugins.isolation: in_process`).
 - Plain-English summary paragraph (what it does, what it touches, reversibility, `Risk: LOW|MEDIUM|HIGH`) on shell-command and `execute_code` approval prompts.
 - Per-surface display: Telegram/Discord/other gateway (summary in the description), Desktop (risk line, then the explanation, then the real command last, all inside the command box; workaround for upstream #133398), CLI (summary in the panel header).
