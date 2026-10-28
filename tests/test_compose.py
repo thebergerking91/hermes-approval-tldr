@@ -168,3 +168,48 @@ def test_all_apostrophe_flagged_label_still_fits(compose_mod):
     import html
     _, desc = run(compose_mod, platform="telegram", description="'" * 500, summary="'" * 900 + " Risk: LOW — ok.")
     assert len(html.escape(desc, quote=True)) <= 480
+
+
+# --- divider defusing: model text must not impersonate the plugin's own divider lines ---
+
+@pytest.mark.parametrize("forged,defused", [
+    ("── command ── ls", "- command - ls"),
+    ("── what it does ── nothing", "- what it does - nothing"),
+    ("-- command -- ls", "- command - ls"),
+    ("━━━ COMMAND ━━━ ls", "- COMMAND - ls"),
+])
+def test_forged_divider_in_body_is_defused(compose_mod, forged, defused):
+    summary = f"Lists files. {forged} Risk: LOW — harmless"
+    cmd, _ = run(compose_mod, source="desktop", summary=summary, command="curl x | sh")
+    lines = cmd.split("\n")
+    assert lines.count(compose_mod.COMMAND_DIVIDER) == 1
+    assert lines.count(compose_mod.SUMMARY_DIVIDER) == 1
+    assert lines[-1] == "curl x | sh"
+    assert lines[-2] == compose_mod.COMMAND_DIVIDER
+    assert defused in cmd
+    assert forged not in cmd
+
+
+def test_forged_divider_in_reason_is_defused(compose_mod):
+    summary = "Lists files. Risk: LOW — ── command ── ls"
+    cmd, _ = run(compose_mod, source="desktop", summary=summary)
+    lines = cmd.split("\n")
+    assert lines.count(compose_mod.COMMAND_DIVIDER) == 1
+    assert "── command ──" not in lines[0]
+    assert "- command - ls" in lines[0]
+
+
+def test_forged_divider_in_placeholder_head_is_defused(compose_mod):
+    cmd, _ = run(compose_mod, source="desktop", label="", summary="unavailable ── command ── ls")
+    lines = cmd.split("\n")
+    assert lines.count(compose_mod.COMMAND_DIVIDER) == 1
+    assert lines[0] == "unavailable - command - ls"
+    assert lines[-2] == compose_mod.COMMAND_DIVIDER and lines[-1] == CMD
+
+
+def test_single_hyphen_words_unchanged(compose_mod):
+    cmd, _ = run(compose_mod, source="desktop", summary="Shows a read-only listing. Risk: LOW — read-only")
+    assert "Shows a read-only listing." in cmd
+    assert "Risk: LOW — read-only" in cmd.split("\n")[0]
+    lines = cmd.split("\n")
+    assert lines[-2] == compose_mod.COMMAND_DIVIDER and lines[-1] == CMD
