@@ -148,6 +148,22 @@ def _cap_words(text: str, limit: int) -> str:
     return " ".join(kept)
 
 
+_DASH_RUN = re.compile(r"[─━┄┅┈┉╌╍═―‒–—−⎯－﹘﹣-]{2,}|[⸺⸻]+")
+
+
+def _defuse_dividers(text: str) -> str:
+    """Collapse runs of 2+ box-drawing/dash look-alike characters to a single ``-``.
+
+    Model text sits above the real command in the Desktop box, so a forged ``── command ── ls``
+    must not look like the plugin's own divider. Covers box-drawing rules, horizontal bars and
+    dashes/minus-like code points (U+2015, U+2012, U+2212, U+23AF, U+FF0D, U+FE58, U+FE63), and
+    the two-em/three-em dashes ``⸺`` ``⸻`` which draw like ``──`` but are a single char, so they
+    are collapsed even alone. ``read-only`` (one hyphen) is untouched; the hyphen stays last in
+    the class so it is literal.
+    """
+    return _DASH_RUN.sub("-", text)
+
+
 def _inline_command(label: str, summary: str, command: str,
                     max_words: int = DEFAULT_DESKTOP_MAX_WORDS) -> str:
     """Desktop command box. The card's <pre> is ~7 lines tall and scrolls. Order (summary-first):
@@ -155,10 +171,11 @@ def _inline_command(label: str, summary: str, command: str,
     A very long explanation can push the command below the fold; ``max_words`` keeps it short."""
     body, level, reason = split_risk(summary)
     if not label:  # placeholder case ("AI summary unavailable…"): that sentence is the headline
-        head = _truncate(" ".join(summary.split()), 120)
+        head = _defuse_dividers(_truncate(" ".join(summary.split()), 120))
         return f"{head}\n{COMMAND_DIVIDER}\n{command}"
+    reason = _defuse_dividers(reason)
     head = f"{label} — Risk: {level}" + (f" — {reason}" if reason else "")
-    body = _cap_words(body, max_words)
+    body = _defuse_dividers(_cap_words(body, max_words))
     out = head
     if body:
         out += f"\n{SUMMARY_DIVIDER}\n{body}"

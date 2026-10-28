@@ -52,7 +52,7 @@ Reply within 5 minutes.
 └──────────────────────────────────────────────────────────────────┘
 ```
 
-Reading order on Desktop: the risk verdict first, then the explanation, then the exact command. The box shows about 7 lines and scrolls. With the default settings the explanation is up to 60 words, so the exact command usually sits below what you see. Scroll down to it before you approve. To keep the command in view, lower `desktop_max_words` in Settings.
+Reading order on Desktop: the risk verdict first, then the explanation, then the exact command. The box shows about 7 lines and scrolls. With the default settings the explanation is up to 60 words, so the exact command usually sits below what you see. Scroll down to it before you approve. The plugin also flattens any fake divider lines in the AI's text, so the AI cannot make its own words look like the "command" line. To keep the command in view, lower `desktop_max_words` in Settings.
 
 In the terminal (CLI), the summary is the header line of the approval panel. The command sits beneath it. The same keys (o / s / a / d) work as before.
 

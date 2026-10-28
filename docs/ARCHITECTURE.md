@@ -36,7 +36,7 @@ tools.approval._human_decision
 | `__init__.py` | `register(ctx)`: hooks, `register_approval_transport("tldr", present)`, `register_auxiliary_task("approval_summary")`. |
 | `tldr/stash.py` | Bounded, thread-safe `request_id -> context` map. TTL = `approvals.timeout` + 60 s. `post_approval_response` also evicts. |
 | `tldr/summarize.py` | Prompt, `ctx.llm.complete(...)`, hard timeout via helper thread + `join`, output sanitizer, placeholder. |
-| `tldr/compose.py` | Per-surface display strings and length budgets (Telegram 480 chars measured AFTER HTML escaping, Discord shorter; Desktop uses `desktop_max_words`). |
+| `tldr/compose.py` | Per-surface display strings and length budgets (Telegram 480 chars measured AFTER HTML escaping, Discord shorter; Desktop uses `desktop_max_words`; model text has runs of box-drawing/dash characters collapsed so it cannot forge the `── command ──` divider). |
 | `tldr/redispatch.py` | Gateway / CLI re-entry and choice normalization. |
 
 ## Internal Hermes seams

@@ -26,5 +26,6 @@ Fixes from the security review, all before the first release:
 - Deadline discipline: `present()` checks `/stop` and the host's finished-set after the LLM call and does not dispatch if the host already decided; the inner wait is withdrawn 5 s before the host deadline; the plugin's own card is withdrawn as soon as Hermes has a decision.
 - Escaped-length Telegram budget: the 480-character limit is measured after HTML escaping, so the real message cannot exceed Telegram's cap.
 - Documentation corrected to the real Telegram card order (summary inside "Why it was flagged") and to state the fallback caveats honestly (second prompt after a timeout, "denied" reported on no answer, oldest-first answering on Telegram).
+- Divider defusing: runs of box-drawing/dash characters in the model's text are collapsed so the summary cannot impersonate the `── command ──` line above the real command on Desktop.
 
 [0.1.0]: https://github.com/thebergerking91/hermes-approval-tldr/releases/tag/v0.1.0
