@@ -1,0 +1,74 @@
+name: Release
+
+# Why: the Hermes plugin catalog pins a full commit SHA, not a tag, so a GitHub Release is for
+# humans: a changelog, a stable reference, and the exact SHA to paste into the catalog SHA-bump
+# PR. This job runs when a `vX.Y.Z` tag is pushed, refuses to publish if the tag does not match
+# plugin.yaml `version:` and a CHANGELOG heading, then creates the release from that CHANGELOG
+# section. No third-party actions beyond checkout, no secrets beyond the job-scoped GITHUB_TOKEN.
+#
+# Security: `contents: write` is granted to this job only; the tag name is validated against a
+# strict regex before it is used, and it comes from `github.ref_name` (a pushed tag, which only
+# someone with push rights can create — the tag ruleset blocks moving or deleting one).
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions: {}
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Validate tag against plugin.yaml and CHANGELOG.md
+        id: meta
+        shell: bash
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          if ! [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::tag '$TAG' is not vX.Y.Z"; exit 1
+          fi
+          ver="${TAG#v}"
+          manifest=$(sed -nE 's/^version:[[:space:]]*"?([0-9]+\.[0-9]+\.[0-9]+)"?.*/\1/p' plugin.yaml | head -1)
+          if [ "$manifest" != "$ver" ]; then
+            echo "::error::plugin.yaml version is '$manifest' but tag is '$TAG'"; exit 1
+          fi
+          if ! grep -qE "^## \[$ver\] - [0-9]{4}-[0-9]{2}-[0-9]{2}" CHANGELOG.md; then
+            echo "::error::CHANGELOG.md has no dated '## [$ver] - YYYY-MM-DD' heading"; exit 1
+          fi
+          # Extract this version's CHANGELOG section (up to the next '## [' heading).
+          awk -v v="$ver" '
+            $0 ~ "^## \\[" v "\\]" {on=1; next}
+            on && /^## \[/ {exit}
+            on {print}
+          ' CHANGELOG.md > "$RUNNER_TEMP/notes.md"
+          {
+            echo "**Catalog pin:** \`$GITHUB_SHA\` (tag \`$TAG\`)"
+            echo
+            echo "Install at this exact commit: \`hermes plugins install https://github.com/$GITHUB_REPOSITORY --ref $GITHUB_SHA\`"
+            echo
+            cat "$RUNNER_TEMP/notes.md"
+          } > "$RUNNER_TEMP/release.md"
+          echo "version=$ver" >> "$GITHUB_OUTPUT"
+
+      - name: Create the GitHub release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          gh release create "$TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "approval-tldr $TAG" \
+            --notes-file "$RUNNER_TEMP/release.md" \
+            --verify-tag

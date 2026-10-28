@@ -1,0 +1,6 @@
+# Every path is owned by the maintainer. With a single maintainer this is documentation and
+# auto-request-review; it becomes an enforced gate the day a second maintainer is added
+# (set require_code_owner_review on the main ruleset then).
+*               @thebergerking91
+/.github/       @thebergerking91
+/plugin.yaml    @thebergerking91
