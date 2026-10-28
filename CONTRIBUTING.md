@@ -48,7 +48,17 @@ Not in the issue tracker — see `SECURITY.md`.
 2. Tag the merge commit: `git tag -a vX.Y.Z <sha> -m "vX.Y.Z" && git push origin vX.Y.Z`. The
    `Release` workflow verifies the tag matches `plugin.yaml` and the CHANGELOG, then publishes a
    GitHub Release whose first line is the **catalog pin** (the full 40-character SHA).
-3. Open a SHA-bump PR on `NousResearch/hermes-agent` editing
+3. Let the tag-triggered workflow be the **only release creator**. Do not run `gh release create`
+   alongside it. Wait for the Release job to succeed, verify the published tag resolves to the
+   intended commit, then upload any validation logs or pinned catalog YAML with `gh release upload`.
+   Reruns verify an existing stable release and leave its notes/assets unchanged. Auth/network
+   errors and mismatched targets are failures, not reasons to create or overwrite a release.
+   Verify test CI, canary and Release independently; a published release alone does not prove
+   all three jobs succeeded. Never move an existing release tag to fix an automation failure.
+4. After explicit submission approval, open a catalog PR (or SHA-bump PR for an existing listing)
+   on `NousResearch/hermes-agent` editing
    `plugin-catalog/approval-tldr.yaml` (`sha:` and `version:`), linking the release.
    Users receive the update through `hermes plugins update approval-tldr` once that PR merges.
    The tag is for people; the SHA is what installs.
+5. Revalidate the exact proposed SHA and update every SHA-pinned image URL when selecting a new
+   candidate. Evidence for an older release is historical, not validation of the new tree.

@@ -4,6 +4,15 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- Reconcile catalog checklists with the published v1.0.0 evidence, distinguishing completed validation from unresolved admission review.
+- Make release creation safe to rerun, with exact remote tag verification and explicit failures for authentication, network and target mismatches. Document the tag-triggered workflow as the sole release creator.
+
+### Unchanged
+- Plugin runtime, existing v1.0.0 tag and installed v0.1.1 remain unchanged. These maintenance changes are not a new release or a new catalog pin.
+
 ## [1.0.0] - 2026-10-27
 
 ### Added

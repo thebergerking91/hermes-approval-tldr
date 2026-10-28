@@ -16,6 +16,10 @@ on:
 
 permissions: {}
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -52,23 +56,20 @@ jobs:
             on {print}
           ' CHANGELOG.md > "$RUNNER_TEMP/notes.md"
           {
-            echo "**Catalog pin:** \`$GITHUB_SHA\` (tag \`$TAG\`)"
+            commit=$(git rev-parse --verify 'HEAD^{commit}')
+            echo "**Catalog pin:** \`$commit\` (tag \`$TAG\`)"
             echo
-            echo "Install at this exact commit: \`hermes plugins install https://github.com/$GITHUB_REPOSITORY --ref $GITHUB_SHA\`"
+            echo "Install at this exact commit: \`hermes plugins install https://github.com/$GITHUB_REPOSITORY --ref $commit\`"
             echo
             cat "$RUNNER_TEMP/notes.md"
           } > "$RUNNER_TEMP/release.md"
           echo "version=$ver" >> "$GITHUB_OUTPUT"
 
-      - name: Create the GitHub release
+      - name: Create or verify the GitHub release
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.ref_name }}
         run: |
           set -euo pipefail
-          gh release create "$TAG" \
-            --repo "$GITHUB_REPOSITORY" \
-            --title "approval-tldr $TAG" \
-            --notes-file "$RUNNER_TEMP/release.md" \
-            --verify-tag
+          python3 scripts/release.py
