@@ -1,52 +1,26 @@
-# Catalog compliance checklist
+# Catalog admission checklist — v1.0.0 draft
 
-Each Hermes plugin-catalog admission requirement, mapped to the file or setting that satisfies it.
-Rules: `plugin-catalog/README.md` in NousResearch/hermes-agent (mirrored at
-<https://hermes-agent.nousresearch.com/docs/developer-guide/plugins/catalog-submission>).
-Re-check this table before every SHA-bump PR.
+Source for **every numbered rule**: [canonical admission policy, rules 1–18](https://github.com/NousResearch/hermes-agent/blob/main/plugin-catalog/README.md#admission-policy); [submission guide](https://hermes-agent.nousresearch.com/docs/developer-guide/plugins/catalog-submission). Local links cite this native v0.1.1 tree. Source assessments are not acceptance or final-pin validation.
 
-## Pre-submission requirements
-
-| Requirement | Satisfied by | Status |
-|---|---|---|
-| Public `https://` repository | <https://github.com/thebergerking91/hermes-approval-tldr> | ✓ |
-| Loadable plugin at the pinned commit: `plugin.yaml` + an entrypoint | `plugin.yaml` (manifest v2) + `__init__.py` `register(ctx)` | ✓ |
-| Public surfaces only, no runtime patching | `__init__.py` uses `ctx.register_hook`, `ctx.register_approval_transport`, `ctx.register_auxiliary_task`, `ctx.llm`; internals are *called* only, in `tldr/redispatch.py` | ✓ (⚠ warning, see rule 9) |
-| `hermes plugins validate <dir> --install-deps` passes | Run locally at the pin; output "Validation passed" | ✓ |
-
-## Admission rules
-
-| # | Rule | Satisfied by | Status |
-|---|---|---|---|
-| 1 | Human-merged gate | Process: one PR adding `plugin-catalog/approval-tldr.yaml` (`docs/catalog/approval-tldr.yaml` is the draft) | ✓ |
-| 2 | Exact 40-char SHA pin | Tag `vX.Y.Z` on `main`; `release.yml` prints the pin on the Release's first line | pending tag |
-| 3 | No self-updating code | No fetch/replace code anywhere in `__init__.py` / `tldr/`; updates only via SHA-bump PR (`CONTRIBUTING.md` → Releasing) | ✓ |
-| 4 | SHA bumps are new PRs | Process; `CONTRIBUTING.md` → Releasing | ✓ |
-| 5 | Owner submits | Repo owner = `maintainer: thebergerking91` = `plugin.yaml` `author` | ✓ |
-| 6 | Declared capabilities match reality | `plugin.yaml` `provides_hooks: [pre_approval_request, post_approval_response]`; no tools/middleware/env; validate: "declared hooks — matches registrations" | ✓ |
-| 7 | Install scanner | validate: "security scan — safe" | ✓ |
-| 8 | Desktop plugins inside SDK | N/A — no `desktop/plugin.js` | n/a |
-| 9 | No runtime overrides of core | validate: "no core override — no runtime rebinds". Warning on private imports in `tldr/redispatch.py` (8 seams, call-only, documented in `docs/ARCHITECTURE.md`; dev-only `scripts/seam_check.py` adds 3). Public-seam issue drafted in `SUBMISSION.md` | ✓ with disclosed ⚠ |
-| 10 | Dependency policy | stdlib only; validate: "python dependencies — none declared" | ✓ |
-| 11 | Credentials via Hermes only | LLM via `ctx.llm` (`__init__.py`, `tldr/summarize.py`); no `.env`/`auth.json`/keychain reads; only env read is non-secret `HERMES_SESSION_*` fallback (`tldr/redispatch.py`) | ✓ |
-| 12 | Approvals and unattended runs respected | Deny on any non-answer (`map_gateway_decision`, `map_cli_choice`), `clamp()` to offered choices, `/stop` propagation, deadline −5 s withdraw (`tldr/redispatch.py`, `__init__.py`); unattended runs never reach transports | ✓ |
-| 13 | Risky behaviour disclosed | `README.md` → Disclosure; `SECURITY.md`; catalog `description` disclosure clause; PR text in `SUBMISSION.md` | ✓ |
-| 14 | Compatibility metadata truthful | `plugin.yaml` `requires_hermes: ">=0.22.2"` (SemVer, ≤ current v0.22.5; all seams verified present at v0.22.2); `version: 0.1.0` = `CHANGELOG.md` `[0.1.0] - 2026-10-27`; `release.yml` refuses a tag that disagrees | ✓ |
-| 15 | No skins/forks of bundled plugins | Original; core declined the feature (#6959) | ✓ |
-| 16 | One listing per lineage | No overlapping entry (`approval-ledger` observes, `ntfy-approval` routes) | ✓ |
-| 17 | No unscannable payloads | `git ls-files` is text only; `.gitignore` excludes bytecode; `ci.yml` fails on tracked binaries | ✓ |
-| 18 | Password managers from vendor | N/A — no `register_login_backend` | n/a |
-
-## Repository hygiene (not rules, but reviewers look)
-
-| Item | Where |
+| Rule | Evidence and actual status |
 |---|---|
-| License | `LICENSE` (MIT), `plugin.yaml` `license: MIT` |
-| Changelog | `CHANGELOG.md` (Keep a Changelog, SemVer) |
-| Tests + CI | `tests/` (160), `.github/workflows/ci.yml` (PR gate), `upstream-canary.yml` (daily drift check) |
-| Release process | `.github/workflows/release.yml`, `CONTRIBUTING.md` → Releasing |
-| Security policy | `SECURITY.md`, private vulnerability reporting enabled |
-| Supply chain | All actions SHA-pinned; `.github/dependabot.yml`; `sha_pinning_required` repo setting |
-| Branch protection | Ruleset `protect-main` (PR + `test` check, squash only, no force-push); ruleset `protect-release-tags` (`v*` immutable) |
-| Fork PRs | Workflow runs require maintainer approval for all external contributors |
-| Attribution | GitHub handle only (`AGENTS.md`, `CONTRIBUTING.md`) |
+| 1 Human merge | **Pending:** owner-submitted one-file PR, CI and maintainer review/merge; [submission](SUBMISSION.md). |
+| 2 Full SHA | **Pending:** fill the 40-hex SHA of the final public packaging commit **after that commit**, then verify pinned tree and image. A tag alone is not a pin. |
+| 3 No self-update | **Source assessment:** [entrypoint](../../__init__.py), [runtime](../../tldr/) have no self-updater; final-pin scan pending. |
+| 4 SHA updates | **Process pending:** future updates need separately reviewed SHA-bump PRs. |
+| 5 Owner submission | **Pending:** owner [@thebergerking91](https://github.com/thebergerking91) submits. |
+| 6 Capabilities | **Source assessment:** [manifest](../../plugin.yaml) and [entrypoint](../../__init__.py) register two approval hooks; [draft](approval-tldr.yaml) mirrors them. Validate final pin. |
+| 7 Install scanner | **Pending:** final-pin `hermes plugins validate ... --install-deps`; inspect caution warnings and resolve failures. |
+| 8 Desktop SDK | **Not applicable to renderer plugin:** no `desktop/plugin.js`; native host card used. [Architecture](../ARCHITECTURE.md). |
+| 9 No core override; public surfaces | **Maintainer decision required:** release research reported zero override findings and private-import warnings (11 runtime and 3 seam-check sites), not a final-pin validator run. Public-only policy wording is real; internal calls and state effects need review. [Architecture](../ARCHITECTURE.md#internal-hermes-seams), [review](SUBMISSION.md#rule-9-review). Warnings are not automatic rejection or acceptance. |
+| 10 Dependencies | **Source assessment:** [manifest](../../plugin.yaml) declares no Python dependencies; verify final-pin resolution. |
+| 11 Credentials | **Source assessment:** native runtime uses `ctx.llm`, no direct credential-store reads; session markers are non-secret. Host/provider access is separate. [Disclosure](../../README.md#disclosure), [adapter](../../tldr/redispatch.py). Review pending. |
+| 12 Approvals | **Source assessment:** offered choices clamped, no answer denies, delivery failure raises for configured fallback; [adapter](../../tldr/redispatch.py), [tests](../../tests/). No claim of all consent gates or live surfaces. Review pending. |
+| 13 Risk disclosure | **Drafted, review pending:** [README](../../README.md#disclosure), [submission](SUBMISSION.md#draft-pr-description). |
+| 14 Metadata | **Source assessment, final pin pending:** [manifest](../../plugin.yaml) and [draft](approval-tldr.yaml) both say 1.0.0 and `>=0.22.2`; validate compatibility. |
+| 15 Bundled-plugin forks/skins | **Source assessment:** separate approval transport, not a bundled-plugin skin; reviewer decides. [README](../../README.md). |
+| 16 One listing per lineage | **Review pending:** original project is not represented as a fork; verify lineage and listings. [Repository](https://github.com/thebergerking91/hermes-approval-tldr). |
+| 17 Scannable payloads | **Final-pin scan pending:** verify the committed tree and scanner result, not just extensions. [Policy](https://github.com/NousResearch/hermes-agent/blob/main/plugin-catalog/README.md#admission-policy). |
+| 18 Password managers | **Not applicable:** no login backend registration in [entrypoint](../../__init__.py). |
+
+Release evidence in [CHANGELOG](../../CHANGELOG.md): 162 tests and a human-confirmed live Desktop approval; this packaging round has not rerun that evidence or captured screenshots. It does not establish live testing of every surface. Final-pin validation, artwork, screenshots, public commit and maintainer review remain open.
