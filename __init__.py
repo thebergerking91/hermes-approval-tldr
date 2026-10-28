@@ -155,6 +155,11 @@ def present(request: Any) -> Any:
             return request.respond("deny")
         raise RuntimeError("approval-tldr: no stashed context for this request "
                            "(pre_approval_request hook did not fire); host will use its built-in prompt")
+    # Preserve the agent context across the host transport worker.
+    return entry.context.run(_present_scoped, request, entry)
+
+
+def _present_scoped(request: Any, entry: StashEntry) -> Any:
     token = _redispatch.hermes_bind_interrupt_target(entry.agent_tid)
     try:
         cfg = _settings()

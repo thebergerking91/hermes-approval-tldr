@@ -4,6 +4,15 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] - 2026-10-27
+
+### Fixed
+- Preserve profile and credential context across the host transport worker and the summary worker, fixing `UnscopedSecretError` and unavailable AI summaries on current Hermes.
+- Keep the existing native approval surfaces and summary-first Desktop layout unchanged. No separate Desktop pane or approval UI is introduced.
+
+### Tests
+- Add regression coverage for context propagation and isolation between concurrent requests. All 162 tests pass; a live native approval test confirmed the AI summary appears above the command and denial prevents execution.
+
 ## [0.1.0] - 2026-10-27
 
 ### Added
@@ -29,4 +38,5 @@ Fixes from the security review, all before the first release:
 - Documentation corrected to the real Telegram card order (summary inside "Why it was flagged") and to state the fallback caveats honestly (second prompt after a timeout, "denied" reported on no answer, oldest-first answering on Telegram).
 - Divider defusing: runs of box-drawing/dash characters in the model's text are collapsed so the summary cannot impersonate the `── command ──` line above the real command on Desktop.
 
+[0.1.1]: https://github.com/thebergerking91/hermes-approval-tldr/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/thebergerking91/hermes-approval-tldr/releases/tag/v0.1.0
