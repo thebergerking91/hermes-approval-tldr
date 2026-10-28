@@ -1,0 +1,5 @@
+# Production and verification
+
+Generated using image_generate landscape. Initial 1024×576 output misspelled the title. An image_generate edit removed the card's nonsensical text but did not fix the title; its output was 1344×768. The final graphic was cropped centrally and resized to 1200×600, and the title was replaced with accurately typeset Arial Bold using Pillow. The image was visually inspected after these changes: title `approval-tldr` and subtitle `AI explains the risk, You decide` are legible. The image depicts a human hand and warning card, not automatic approval. No official name or logo appears.
+
+Edit prompt: Correct the large yellow headline so it reads exactly 'approval-tldr' (a p p r o v a l - t l d r). It currently has a spelling error. Preserve the rest of this original artwork and subtitle 'AI explains the risk, You decide'. Remove any nonsensical small text on the card, replacing it with abstract lines. Maintain high legibility, dark screenprint style and composition.

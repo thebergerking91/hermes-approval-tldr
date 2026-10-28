@@ -1,116 +1,35 @@
-# Catalog submission kit
+# Catalog submission kit — v1.0.0 draft
 
-Everything needed to list approval-tldr in the Hermes plugin catalog
-(`NousResearch/hermes-agent/plugin-catalog/`). Rules:
-<https://hermes-agent.nousresearch.com/docs/developer-guide/plugins/catalog-submission>.
+**Not submitted or accepted.** v1.0.0 packages the live-tested native v0.1.1 runtime unchanged, with catalog documentation and artwork; it is not a UI redesign. Submission is by repository owner [@thebergerking91](https://github.com/thebergerking91); publication of this repository does not authorize a Nous issue, fork, PR or other upstream mutation. Obtain the user's explicit approval later before submitting. [Official guide](https://hermes-agent.nousresearch.com/docs/developer-guide/plugins/catalog-submission) · [rules 1–18](COMPLIANCE.md).
 
-## Checklist (in order)
+## Before submitting
 
-1. **Release is tagged.** `v0.1.0` exists, the Release workflow published it, and the release
-   notes' first line shows the catalog pin SHA. The SHA must be on `main`.
-2. **Validate at that commit.** From a clean checkout of the pinned SHA:
-   `hermes plugins validate /path/to/checkout --install-deps` → "Validation passed". The one ⚠
-   (private core imports) is expected; see the PR text below.
-3. **Open the seam issue first** (text in *Issue: public seam* below) on
-   <https://github.com/NousResearch/hermes-agent/issues/new>. Note its number.
-4. **Fork `NousResearch/hermes-agent`**, branch `catalog/approval-tldr`, add exactly one file
-   `plugin-catalog/approval-tldr.yaml` (copy `approval-tldr.yaml` from this folder, fill `sha:`).
-5. **Open the PR** with the description below (fill `<sha>` and `#<issue>`), attach the validate
-   log and Desktop + Telegram screenshots. Wait for the "Plugin Catalog CI" job to go green.
-6. Answer review. Rule 9 questions are the likely ones; the talking points are below.
+1. The parent/owner handles the repository packaging commit and publication. Do not put a self-referential commit SHA into the commit itself: **after the final commit exists**, substitute its full 40-character SHA in `sha`, `image` and `screenshots` in the separate catalog PR copy of [approval-tldr.yaml](approval-tldr.yaml). Confirm the exact public tree includes the intended code, README and `docs/artwork/01-infographic-approval-tldr.png`. A tag is optional, not a substitute for the SHA. The requested initial catalog version is 1.0.0; the release tag is v1.0.0.
+2. Artwork exists locally at that path (1200 × 600) but is not yet established in the published pin. Ensure the committed image meets the [catalog image schema](https://github.com/NousResearch/hermes-agent/blob/main/plugin-catalog/README.md#entry-schema), including its 2:1 recommendation. A real native Desktop capture is included at `docs/screenshots/native-desktop-approval.png`; it shows the summary and controls, with the command below the visible scroll boundary. Other surface screenshots are not included; do not imply live verification on every platform.
+3. At a clean checkout of the exact public SHA, run `hermes plugins validate /path/to/checkout --install-deps`; attach real output and examine each warning. Verify metadata and image URL at the same pin. This has not been done at the final packaging SHA.
+4. **Only after separate explicit user approval**, the owner may add exactly one YAML file `plugin-catalog/approval-tldr.yaml` to a NousResearch/hermes-agent PR. Attach validation output and actual screenshots; await catalog CI and maintainer review. Review can accept, request changes, or decline; no precedent guarantees admission.
+5. A public host display/delegation seam is a useful optional proposal, not an unconditional issue-first prerequisite for this draft. The [policy](https://github.com/NousResearch/hermes-agent/blob/main/plugin-catalog/README.md#admission-policy) says to request missing hooks and favors a seam over a patch; it also limits plugins to public surfaces. Whether this non-rebinding design is admissible is for maintainers to decide. Do not open an issue without approval.
 
-Later updates: bump `plugin.yaml` version + CHANGELOG, tag, then a SHA-bump PR editing `sha:` and
-`version:` in the same catalog file (see CONTRIBUTING.md → Releasing).
+## Draft PR title
 
-## PR title
+`plugin-catalog: add approval-tldr (community, tools) — v1.0.0 @ <FINAL_COMMIT_SHA>`
 
-`plugin-catalog: add approval-tldr (community, tools) @ <sha> — v0.1.0`
+## Draft PR description
 
-## PR description
+**What it does.** Opt-in `tldr` transport adds an explicitly AI-generated, potentially wrong explanation to transport-eligible shell-command and `execute_code` approvals. Hermes retains the underlying command and native choice authority. Desktop/TUI place the summary first in the native command box, followed by the command; messaging uses the description and CLI uses the panel header. Scroll to read the real command. Other consent gates, including protected-file, memory, MCP and plugin-rule approvals, are not claimed as covered. Smart approval and unattended modes may not prompt. [Limitations](../../README.md#limitations).
 
-**What it does.** Hermes asks non-programmers "Approve?" over a raw shell command. approval-tldr
-is an opt-in approval transport. Once selected with `security.approval.transport: tldr`, it adds a
-short plain-English paragraph to every dangerous-command and `execute_code` prompt: what the
-command does, what it touches, whether it can be undone, and a `Risk: LOW|MEDIUM|HIGH` verdict.
-The text is labelled "AI summary (may be wrong — read the command)". The real command and the
-buttons are unchanged. Surfaces: gateway (Telegram/Discord — text goes in "Why it was flagged"),
-Desktop (inside the command box; workaround for #133398), CLI (panel header). Related: #86084,
-#45290. Core declined this feature in #6959, which is why it is an opt-in plugin.
+**Public integration:** approval hooks, `ctx.register_approval_transport`, `ctx.register_auxiliary_task`, `ctx.llm` and `request.respond`. **Private host coupling:** native redispatch calls the internal helpers in [architecture](../ARCHITECTURE.md#internal-hermes-seams), including gateway queue presentation and withdrawal, CLI prompt, session markers, interrupt context and timeout. No core function or module attribute is replaced or rebound; worker `acting_for_tid` is set and reset, and queue presentation/withdrawal change host state. This is stronger than a read-only import and needs a specific rule-9 decision.
 
-**Hermes surfaces used.**
-- Public: `ctx.register_approval_transport("tldr", present)`;
-  `ctx.register_hook("pre_approval_request" | "post_approval_response")`;
-  `ctx.llm.complete(task="approval_summary")`;
-  `ctx.register_auxiliary_task("approval_summary", inherit_from="approval")`; `ctx.get_config`;
-  `request.respond(choice)`; `agent.plugin_llm.PluginLlmTrustError`.
-- Internal — **called, never patched** (`no core override` ✓; the private-imports ⚠ from
-  validate lists them):
-  `tools.approval._gateway_notify_cb`, `tools.approval_gateway_wait._await_gateway_decision`,
-  `tools.approval.withdraw_gateway_approval`, `tools.approval_prompt.prompt_dangerous_approval`,
-  `tools.terminal_tool._get_approval_callback`, `tools.interrupt.acting_for_tid` /
-  `is_interrupted` (set and reset by token on the transport worker so `/stop` reaches it),
-  `gateway.session_context.get_session_env`, `tools.approval_context._get_approval_timeout`.
-  All live in one adapter file (`tldr/redispatch.py`); every failure raises so the host falls
-  back to its own prompt; signatures are pinned by tests and `scripts/seam_check.py` (dev-only —
-  it accounts for 3 of the 14 warning sites) and a daily CI canary runs them against `main` and
-  the newest tag. Why they are needed: the public transport contract is "deliver to *your* UI";
-  there is no public way to re-show Hermes' *own* card with amended text. Seam request:
-  #<issue>. We will switch to the public seam the release it lands and delete the private path
-  in a SHA-bump PR.
+**Disclosures.** Host-redacted command text and flag reason go through `ctx.llm` to the configured model provider; redaction is best effort and the AI can be wrong or influenced by untrusted text. The native v0.1.1 plugin runtime does not directly read credential stores, write files, launch processes or make other direct network calls; Hermes and its provider may perform their own operations, including logging. The plugin starts a bounded summary thread and a deadline timer for a pending gateway card; it runs in-process. It clamps choices to those offered; non-answers map to deny, while delivery failure raises. Configuring host-wide `transport_fallback: builtin` enables the stock prompt on transport failure and can result in a second question; without it the host default may deny. Internal seams may break on a host update. [Details](../../README.md#disclosure).
 
-**Disclosures (rule 13).**
-- Network: the command text and flag reason (Hermes-redacted, best-effort) go to the user's
-  configured LLM provider through `ctx.llm`, which may be a third party. No other network.
-- No credential reads (no env secrets, `.env` or `auth.json`), no file writes, no processes, no
-  background services beyond Hermes' own transport worker and one bounded summary thread.
-- Approval safety: never approves on its own. Timeout, `/stop`, withdrawn card or no answer all
-  become deny. Choices are clamped to what the host offered. Inner wait ends 5 s before the host
-  deadline. Cron and other unattended runs never reach the transport.
-- The documented install steps set `security.approval.transport_fallback: builtin` (host-wide):
-  a plugin failure shows the stock prompt, and after a timeout the user may be asked twice.
-- Fragility: depends on the internal functions above.
-- The AI text can be wrong and a hostile command could try to steer it (mitigations: random
-  fence tag, comment stripping, slash-command and divider defusing). On Desktop the real command
-  can sit below the fold of the ~7-line box (`desktop_max_words`, default 60).
+**Evidence:** The v0.1.1 release record reports 162 tests passing and a human-confirmed live Desktop test in which the AI summary appeared above the command and denial prevented execution ([CHANGELOG](../../CHANGELOG.md)). This is not evidence of live tests on every surface. A real native Desktop screenshot is included and its limitations are stated in the README. Official `--install-deps` validation and all 162 tests passed on the packaging worktree; rerun on the final published pin.
 
-**Validation:** `hermes plugins validate --install-deps` → "Validation passed" (log attached).
-Screenshots: Desktop and Telegram attached. Maintainer: @thebergerking91 (repo owner).
+## Rule 9 review
 
-## Rule 9 talking points (if asked)
+The [policy](https://github.com/NousResearch/hermes-agent/blob/main/plugin-catalog/README.md#admission-policy) requires public surfaces and prohibits core overrides; the [private-import lint](https://github.com/NousResearch/hermes-agent/blob/main/hermes_cli/plugin_validate_private_imports.py) warns rather than fails on undocumented module imports. Release research reported zero override findings, 11 runtime warning sites and 3 development seam-check sites; revalidate the final pin. This is not a claim of public API support or catalog compliance.
 
-1. The ⚠ is expected; each import is listed with its reason in `docs/ARCHITECTURE.md`.
-2. Zero rebinds, no `setattr`, no `sys.modules`, no writes into core tables. The only core state
-   touched goes through core's own APIs: `ContextVar.set()`/`reset(token)` on the worker's own
-   context, and queue insert/remove via `_await_gateway_decision` / `withdraw_gateway_approval`.
-3. The gap is real: the public transport API cannot reuse the host card. Issue #<issue> asks
-   for the seam; we'd rather use it than keep the private path.
-4. Offer: hold the listing until the seam lands if maintainers prefer.
+[Plan-mode #136605, maintainer comment 6121502112](https://github.com/NousResearch/hermes-agent/pull/136605#issuecomment-6121502112) approved guarded internal **reads** with fallbacks; it did not approve native queue manipulation. [Pushary #141598](https://github.com/NousResearch/hermes-agent/pull/141598) was merged with disclosed private-import warnings; that does not waive rule 9 or establish a public redispatch API. Ask maintainers to assess this plugin's exact queue and context effects against the public-surfaces wording. [Architecture](../ARCHITECTURE.md#internal-hermes-seams) details each helper, read, effect and fallback.
 
-## Issue: public seam
+## Optional public-seam proposal (not filed)
 
-**Title:** Approval transports: public way to present the built-in prompt with amended display
-text
-
-**Problem.** `ctx.register_approval_transport` lets a plugin own *where* an approval is shown. A
-plugin that only wants to change *what text* the human sees on the host's own surface
-(explanation, translation, accessibility rewrite) has no public path. Today it must re-enter
-`tools.approval._gateway_notify_cb`, `tools.approval_gateway_wait._await_gateway_decision`,
-`tools.approval.withdraw_gateway_approval`, `tools.approval_prompt.prompt_dangerous_approval` and
-`tools.terminal_tool._get_approval_callback`, propagate `/stop` by setting
-`tools.interrupt.acting_for_tid` (the transport worker is not the agent thread), and read
-`tools.approval_context._get_approval_timeout`. Concrete consumer: approval-tldr (catalog PR
-#<pr>). `hermes plugins validate` passes with no rebinds but warns on these 8 internal imports.
-
-**Proposal (any one would do):**
-1. `request.present_builtin(description=None, command_display=None, timeout_s=None) -> choice`:
-   shows the host's normal prompt on the request's own surface with amended display strings (the
-   executed command unchanged), honours `/stop` and the host deadline, returns a clamped choice
-   for `request.respond()`.
-2. A transform hook `transform_approval_display(command, description, surface, ...) ->
-   {description?, command_prefix?}` run before the built-in prompt; no transport needed.
-3. Minimum: public `request.is_cancelled()` / `request.deadline`, plus `request.platform` /
-   `request.source`, so plugins need not read session env on the agent thread.
-
-**Safety.** Hermes keeps detection, hardline blocks, scopes, persistence and the final decision;
-only display strings change. Plugins stop drifting into private queue internals and two plugins
-can no longer collide on the queue.
+A documented display transform or built-in presentation delegation could let a plugin provide advisory text while Hermes retains native routing, original command, host choices, request binding, cancellation and deadlines on each supported surface. This is a proposal, not an existing supported API. A separate plugin-owned Desktop panel or rerouting all prompts to messaging is not equivalent to v0.1.1 native behavior. Maintainers may prefer a seam, request changes, or decline the listing; neither filing an issue nor this proposal guarantees admission.

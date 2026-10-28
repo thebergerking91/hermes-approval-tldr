@@ -4,6 +4,15 @@ All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - 2026-10-27
+
+### Added
+- Catalog submission documentation, explicit internal-API disclosures and a 1200×600 Baoyu-generated banner with production records.
+
+### Unchanged
+- Python runtime is identical to v0.1.1: native cross-surface approval prompts, summary-first Desktop layout, and the thread-context repair. No separate approval pane or rerouting.
+- Catalog admission remains subject to maintainer review; publication is not submission or endorsement.
+
 ## [0.1.1] - 2026-10-27
 
 ### Fixed
@@ -11,7 +20,7 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Keep the existing native approval surfaces and summary-first Desktop layout unchanged. No separate Desktop pane or approval UI is introduced.
 
 ### Tests
-- Add regression coverage for context propagation and isolation between concurrent requests. All 162 tests pass; a live native approval test confirmed the AI summary appears above the command and denial prevents execution.
+- Release verification recorded 162 tests passing, including context propagation and concurrent-request isolation. A human-confirmed live Desktop native approval test showed the AI summary above the command and denial prevented execution; this is not a claim of live verification on every surface. The v1 packaging adds a real cropped native Desktop screenshot; the displayed command lies below its visible scroll boundary.
 
 ## [0.1.0] - 2026-10-27
 
@@ -38,5 +47,6 @@ Fixes from the security review, all before the first release:
 - Documentation corrected to the real Telegram card order (summary inside "Why it was flagged") and to state the fallback caveats honestly (second prompt after a timeout, "denied" reported on no answer, oldest-first answering on Telegram).
 - Divider defusing: runs of box-drawing/dash characters in the model's text are collapsed so the summary cannot impersonate the `── command ──` line above the real command on Desktop.
 
+[1.0.0]: https://github.com/thebergerking91/hermes-approval-tldr/compare/v0.1.1...v1.0.0
 [0.1.1]: https://github.com/thebergerking91/hermes-approval-tldr/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/thebergerking91/hermes-approval-tldr/releases/tag/v0.1.0

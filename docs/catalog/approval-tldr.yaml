@@ -1,16 +1,19 @@
-# Draft catalog entry for NousResearch/hermes-agent → plugin-catalog/approval-tldr.yaml
-# Copy this file there. Replace <sha> with the full 40-character commit SHA of the v0.1.0 tag
-# (the Release notes' first line prints it). Schema: plugin-catalog/README.md "Entry schema".
+# Draft only: finalize ALL <FINAL_COMMIT_SHA> placeholders AFTER the final public
+# packaging commit exists. Each must be its exact 40-character commit SHA.
+# The artwork must exist at this path in that same committed tree.
 name: approval-tldr
 repo: https://github.com/thebergerking91/hermes-approval-tldr
-sha: <sha>
-description: "Plain-English explanation on every dangerous-command approval prompt: once selected with security.approval.transport: tldr, each shell or execute_code prompt on Telegram/Discord, Desktop or the CLI gains a short AI-written paragraph (labelled as AI and possibly wrong) saying what the command does, what it touches, whether it can be undone and a LOW/MEDIUM/HIGH risk verdict, next to the unchanged real command and buttons; Hermes keeps all authority and the plugin only relays the person's answer. Disclosure — each prompt's command text and flag reason (Hermes-redacted, best-effort) go to the user's configured LLM provider through ctx.llm (auxiliary task approval_summary); re-shows the prompt on Hermes' own card through internal approval functions (called, never patched) that a Hermes release can break; any non-answer, /stop or unoffered scope is a deny; the documented install steps set transport_fallback: builtin (host-wide), so a failure shows the stock prompt and a timeout can ask twice; reads no credentials, writes no files, starts no processes, no other network"
+sha: <FINAL_COMMIT_SHA>
+description: "Opt-in AI explanations for transport-eligible shell and execute_code approvals on native Hermes surfaces; AI text may be wrong, so read the command. Command text and flag reason go through ctx.llm to the configured provider, with best-effort host redaction. Native redispatch calls internal Hermes seams and affects the host approval queue and worker interrupt context; a host update can break them. Non-answers deny; transport failure falls back to the stock prompt only when configured, and may ask twice. Native plugin runtime does not directly read credentials, write files, launch processes or make other network calls."
 maintainer: thebergerking91
 tier: community
 category: tools
 requires_hermes: ">=0.22.2"
 docs_url: https://github.com/thebergerking91/hermes-approval-tldr#readme
-version: "0.1.0"
+version: "1.0.0"
+image: https://raw.githubusercontent.com/thebergerking91/hermes-approval-tldr/<FINAL_COMMIT_SHA>/docs/artwork/01-infographic-approval-tldr.png
+screenshots:
+  - https://raw.githubusercontent.com/thebergerking91/hermes-approval-tldr/<FINAL_COMMIT_SHA>/docs/screenshots/native-desktop-approval.png
 platforms: []
 capabilities:
   provides_tools: []

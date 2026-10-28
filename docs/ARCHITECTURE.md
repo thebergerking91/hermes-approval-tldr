@@ -41,7 +41,7 @@ tools.approval._human_decision
 
 ## Internal Hermes seams
 
-Seam 1 is a public plugin API. Everything after it is underscore/internal and is the real breakage risk. The test suite pins their signatures.
+Seam 1 is a public plugin API; subsequent host seams are undocumented/internal and can break. The test suite checks signatures, not public support. Release research found zero core override findings, but this design is not read-only: gateway presentation and withdrawal affect the host queue and `acting_for_tid.set/reset` affects the worker's core-owned context. [Rule 9](https://github.com/NousResearch/hermes-agent/blob/main/plugin-catalog/README.md#admission-policy) requires public surfaces and warns on private imports; admission is a maintainer decision, not guaranteed by warning-only lint. [Review and precedents](catalog/SUBMISSION.md#rule-9-review).
 
 1. **Transport + hook contract** (public plugin API).
    - `ctx.register_approval_transport(name, present_fn)` — `hermes_cli/plugins.py:437`; frozen `ApprovalRequest` — `hermes_cli/approval_transport.py:40-53`; worker thread — `approval_transport.py:124-128`; requires `plugins.isolation: in_process` — `plugin_isolation.py:41`.
@@ -55,6 +55,14 @@ Seam 1 is a public plugin API. Everything after it is underscore/internal and is
 7. **`tools.interrupt.acting_for_tid` + `is_interrupted`** (internal) — `tools/interrupt.py:32-34`, `:57-58`. Used to propagate `/stop` from the agent thread to the worker (see below).
 8. **`gateway.session_context.get_session_env`** (internal) — reads `HERMES_SESSION_PLATFORM` / `HERMES_SESSION_SOURCE`. Called inside the hook, never on the worker.
 9. **`tools.approval_context._get_approval_timeout`** (internal) — the host approval timeout, used for the stash TTL and for the deadline math.
+
+### Per-seam fallback and effect
+
+- `_gateway_notify_cb`: reads the session notifier; missing notifier uses a captured CLI callback if available, otherwise raises. `_await_gateway_decision`: enqueues/notifies and waits; missing import or delivery failure raises. `withdraw_gateway_approval`: removes the pending queue entry; cleanup failures are logged/suppressed on quiet deadline cleanup.
+- `prompt_dangerous_approval` displays and waits on the native CLI; missing import raises. `_get_approval_callback` reads the thread-local callback; missing callback returns `None`, with the no-surface case raising.
+- `acting_for_tid` reads and temporarily sets a worker context value then resets the token; failure to bind returns `None` and reset errors are suppressed. `is_interrupted` reads interrupt state and returns `False` on read failure. These are not guarantees of `/stop` propagation if the seam is broken.
+- `get_session_env` reads non-secret surface markers; on failure falls back to the process environment. `_get_approval_timeout` reads host timeout; on failure defaults to 300 seconds. `agent.plugin_llm.PluginLlmTrustError` is checked for LLM trust errors; if import fails, the adapter checks class names in the exception hierarchy.
+- Raised transport errors cause a stock prompt only when `transport_fallback: builtin` is configured; otherwise host default denial applies. Summary failure itself shows an unavailable placeholder. See [adapter](../tldr/redispatch.py) and [submission](catalog/SUBMISSION.md).
 
 ### Queue behavior: ours is not always the only entry
 
@@ -71,7 +79,7 @@ Supporting facts the design depends on:
 
 ## Behavior rules that follow from the seams
 
-- Every non-answer (`notify_failed`, `resolved=False`, `cancelled`, `choice=None`, timeout) maps to `deny`. This supersedes the earlier "do not answer" idea in DESIGN §4.5 (see §4.6).
+- Non-answers (`resolved=False`, `cancelled`, `choice=None`, timeout) map to `deny`; `notify_failed` instead raises to permit the configured host fallback.
 - `choice` is checked against `request.allowed_choices` before `request.respond(...)`.
 - Missing stash entry, no notify callback and no stashed CLI callback: raise, and the host falls back to the built-in prompt (`transport_fallback: builtin`).
 - `present` stays synchronous. LLM time counts against `approvals.timeout`.

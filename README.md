@@ -1,14 +1,24 @@
 # approval-tldr
 
+![approval-tldr infographic](docs/artwork/01-infographic-approval-tldr.png)
+
+Version **1.0.0** retains the tested v0.1.1 native approval behavior. Catalog listing is subject to maintainer review; this repository is not an endorsement by Nous Research.
+
 Plain-English summaries on Hermes Agent approval prompts. A plugin for [Hermes Agent](https://github.com/NousResearch/hermes-agent) by Nous Research.
 
 Repository: https://github.com/thebergerking91/hermes-approval-tldr
+
+## Native Desktop preview
+
+![Real native Desktop approval with the AI summary first](docs/screenshots/native-desktop-approval.png)
+
+Actual Desktop capture, cropped to the approval card. The summary is above the command; the command is below the visible scroll boundary in this capture. Scroll to read it before approving. This image demonstrates presentation, not command identity or a completed decision. Telegram/Discord live screenshots are not included.
 
 ## What this does
 
 When Hermes wants to run something risky, it stops and asks "Approve this?" It shows you the raw shell command or Python script. If you are not a programmer, you cannot tell a harmless cleanup from a command that destroys your work. So you end up approving everything, or denying everything.
 
-This plugin adds a short paragraph to every approval prompt. It says what the command will do, what it touches, whether you can undo it, and a risk level (LOW, MEDIUM or HIGH). The paragraph is written by an AI model, so it is labeled as such and it can be wrong. The real command stays on screen next to it (on Desktop the box shows the risk line first, then the explanation, then the exact command at the bottom). The plugin never approves or denies anything for you.
+This plugin adds a short paragraph to transport-eligible shell-command and `execute_code` approval prompts, not every consent prompt. It says what the command will do, what it touches, whether you can undo it, and a risk level (LOW, MEDIUM or HIGH). The paragraph is written by an AI model, so it is labeled as such and it can be wrong. The real command stays on screen next to it (on Desktop the box shows the risk line first, then the explanation, then the exact command at the bottom). The plugin never grants approval without your answer. A missing answer, cancellation or timeout is handled conservatively as a denial; Hermes retains final authorization.
 
 **Before** (Telegram):
 
@@ -187,9 +197,9 @@ Honest caveats to that last promise:
 What a careful person would want to know before installing:
 
 - **AI provider egress.** For every approval prompt it handles, the plugin sends the command text and Hermes' "why it was flagged" reason to your configured AI provider, through Hermes' own plugin LLM API (`ctx.llm`). That provider may be a third-party service. Hermes redacts secrets from approval text first, but redaction is best-effort and not identical on every surface. The provider is your main model, or the one you pin with `auxiliary.approval_summary.*` (the plugin registers that auxiliary task).
-- **No other network, files or processes.** The plugin makes no other network requests, reads no credentials or files outside Hermes, writes no files (only Hermes' normal log), and starts no processes. The prompt card itself is delivered by Hermes' existing gateway (Telegram, Discord, Desktop) or CLI panel.
-- **Uses Hermes internals.** To show the prompt on Hermes' own card and wait for your answer, the plugin calls eight internal (underscore or undocumented) Hermes functions, listed in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). It calls them and never replaces or patches them. A Hermes update can break them; you then get Hermes' stock prompt (with `transport_fallback: builtin`) or a denial (Hermes' default).
-- **Never decides for you.** Anything except an explicit answer you gave (timeout, `/stop`, withdrawn card, delivery error) is reported to Hermes as "deny". Any choice Hermes did not offer becomes "deny".
+- **Plugin runtime scope.** The native v0.1.1 plugin makes no other direct network requests, reads no credential stores or files outside Hermes, writes no files, and starts no processes. Hermes and its configured provider may perform their own operations, including logging. The prompt card itself is delivered by Hermes' existing gateway (Telegram, Discord, Desktop) or CLI panel.
+- **Uses Hermes internals.** To show the native prompt and wait for your answer, the plugin calls internal Hermes functions, listed with their effects and fallbacks in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). It does not replace or patch them, but presentation and withdrawal affect the host queue and a worker context value is set and reset for interrupts. A Hermes update can break these seams; transport failures use the stock prompt only with `transport_fallback: builtin`, otherwise Hermes' default may deny. Catalog admission remains a maintainer decision.
+- **Never decides for you.** Timeout, `/stop`, a withdrawn card or an unoffered choice maps to "deny". A delivery error raises instead, allowing the configured host fallback.
 - **One host setting changed by the install steps.** Step 3 sets `security.approval.transport_fallback: builtin`. That applies to all approval transports, not only this one. With it, a plugin failure shows Hermes' normal prompt, and after a timeout you may be asked a second time (the agent can wait up to about twice `approvals.timeout`).
 - **Runs inside Hermes.** Approval transports require `plugins.isolation: in_process`, so the plugin runs in the Hermes process itself (no sandbox). Besides the two hooks it registers an approval transport (inactive until you select it) and the `approval_summary` auxiliary task. For each pending gateway card it starts one short-lived timer thread whose only job is to withdraw that card before Hermes' deadline.
 - **Prompt injection.** The model is told to treat the command as untrusted data and to ignore any instructions written inside it. This reduces, but cannot remove, the chance that a hostile command steers its own summary. The real command is always shown. Read it.
