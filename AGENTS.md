@@ -38,6 +38,7 @@ CI: `.github/workflows/upstream-canary.yml` runs the seam check + suite against 
 - New Hermes-internal dependency → new adapter in `tldr/redispatch.py` **and** a new row in `scripts/seam_check.py` `SEAMS` **and** the seam list in `docs/ARCHITECTURE.md`.
 - Behavior change → `CHANGELOG.md` (Keep a Changelog) and, if user-visible, `README.md` (written for non-programmers; short sentences).
 - Commits: `type: subject` (`feat:`, `fix:`, `docs(design):`, `ci:`); body explains why.
+- Public attribution is the GitHub handle `thebergerking91` only — in files (`author:`, LICENSE, README credit), commit author/committer, and history. No personal name anywhere; the history was already rewritten once to enforce this. Commit with `-c user.name=thebergerking91 -c user.email=thebergerking91@users.noreply.github.com` if the global identity differs.
 
 ## Pitfalls
 
