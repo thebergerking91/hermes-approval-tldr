@@ -9,6 +9,7 @@ transport, so it is the only place to capture those values. Entries expire (appr
 
 from __future__ import annotations
 
+import contextvars
 import threading
 import time
 from collections import OrderedDict
@@ -31,6 +32,7 @@ class StashEntry:
     agent_tid: int  # agent thread ident, so /stop can be propagated to the worker
     cli_callback: Optional[Callable[..., Any]]  # thread-local CLI panel callback, may be None
     captured_at: float = field(default_factory=time.time)
+    context: contextvars.Context = field(default_factory=contextvars.copy_context, repr=False, compare=False)
 
 
 class Stash:

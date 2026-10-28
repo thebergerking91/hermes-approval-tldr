@@ -1,5 +1,5 @@
 name: approval-tldr
-version: 0.1.0
+version: 0.1.1
 description: Plain-English "what this does and what the risk is" paragraph on every dangerous-command approval prompt. Opt-in approval transport; Hermes keeps all authority.
 author: thebergerking91
 license: MIT

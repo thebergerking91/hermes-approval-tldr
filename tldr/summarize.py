@@ -10,6 +10,7 @@ fixed placeholder — a summary problem must never block or auto-answer an appro
 
 from __future__ import annotations
 
+import contextvars
 import logging
 import re
 import secrets
@@ -247,7 +248,8 @@ def summarize(llm_getter: Callable[[], Any], command: str, description: str, *, 
         except Exception as exc:
             logger.warning("approval-tldr: summary failed (%s: %s)", type(exc).__name__, exc)
 
-    worker = threading.Thread(target=_work, name="approval-tldr-summary", daemon=True)
+    context = contextvars.copy_context()
+    worker = threading.Thread(target=context.run, args=(_work,), name="approval-tldr-summary", daemon=True)
     try:
         worker.start()
         worker.join(max(float(timeout_s), 0.0))
