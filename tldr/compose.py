@@ -150,18 +150,19 @@ def _cap_words(text: str, limit: int) -> str:
 
 def _inline_command(label: str, summary: str, command: str,
                     max_words: int = DEFAULT_DESKTOP_MAX_WORDS) -> str:
-    """Desktop command box. The card's <pre> is ~7 lines tall and scrolls, so the REAL command must
-    start on line 3: one-line verdict first, then the command, then the (word-capped) explanation."""
+    """Desktop command box. The card's <pre> is ~7 lines tall and scrolls. Order (summary-first):
+    one-line verdict on line 1, then the (word-capped) explanation, then the REAL command last.
+    A very long explanation can push the command below the fold; ``max_words`` keeps it short."""
     body, level, reason = split_risk(summary)
     if not label:  # placeholder case ("AI summary unavailable…"): that sentence is the headline
         head = _truncate(" ".join(summary.split()), 120)
         return f"{head}\n{COMMAND_DIVIDER}\n{command}"
     head = f"{label} — Risk: {level}" + (f" — {reason}" if reason else "")
-    out = f"{head}\n{COMMAND_DIVIDER}\n{command}"
     body = _cap_words(body, max_words)
+    out = head
     if body:
         out += f"\n{SUMMARY_DIVIDER}\n{body}"
-    return out
+    return f"{out}\n{COMMAND_DIVIDER}\n{command}"
 
 
 def compose(surface: str, platform: str, source: str, label: str, summary: str, command: str,
@@ -169,8 +170,8 @@ def compose(surface: str, platform: str, source: str, label: str, summary: str, 
             desktop_max_words: int = DEFAULT_DESKTOP_MAX_WORDS) -> tuple[str, str]:
     """Return ``(display_command, display_description)`` for this surface.
 
-    * Desktop / TUI (``source`` in desktop|tui): verdict line, then the real command, then the
-      explanation, all inside the command box (the real command starts on line 3).
+    * Desktop / TUI (``source`` in desktop|tui): verdict line, then the explanation, then the
+      real command (last), all inside the command box.
     * Telegram / Discord / other gateway platform: summary goes into the description, capped.
     * CLI: same as Telegram without a cap.
     * Gateway with neither platform nor source (unknown): summary in BOTH places.

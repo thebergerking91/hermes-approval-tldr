@@ -8,7 +8,7 @@ Repository: https://github.com/thebergerking91/hermes-approval-tldr
 
 When Hermes wants to run something risky, it stops and asks "Approve this?" It shows you the raw shell command or Python script. If you are not a programmer, you cannot tell a harmless cleanup from a command that destroys your work. So you end up approving everything, or denying everything.
 
-This plugin adds a short paragraph to every approval prompt. It says what the command will do, what it touches, whether you can undo it, and a risk level (LOW, MEDIUM or HIGH). The paragraph is written by an AI model, so it is labeled as such and it can be wrong. The real command stays on screen next to it (on Desktop the command is the third line of the box, directly under the risk line). The plugin never approves or denies anything for you.
+This plugin adds a short paragraph to every approval prompt. It says what the command will do, what it touches, whether you can undo it, and a risk level (LOW, MEDIUM or HIGH). The paragraph is written by an AI model, so it is labeled as such and it can be wrong. The real command stays on screen next to it (on Desktop the box shows the risk line first, then the explanation, then the exact command at the bottom). The plugin never approves or denies anything for you.
 
 **Before** (Telegram):
 
@@ -36,23 +36,23 @@ Reply within 5 minutes.
 [✅ Allow Once] [✅ Session] [✅ Always] [❌ Deny]
 ````
 
-**After** (Desktop app). The Desktop card only draws the command box, and that box shows about 7 lines and then scrolls. So the real command has to come early, not at the bottom:
+**After** (Desktop app). The Desktop card only draws the command box, and that box shows about 7 lines and then scrolls. So the summary goes inside that box, above the command:
 
 ```
 ┌ Command ──────────────────────────────────────────────────────┐
 │ AI summary (may be wrong — read the command) — Risk: LOW — only  │
 │ regenerable cache files                                         │
-│ ── command ──                                                   │
-│ find . -name "*.pyc" -delete                                    │
 │ ── what it does ──                                              │
 │ This deletes every Python cache file (*.pyc) under the current  │
 │ project folder. It does not touch your source code; the caches  │
 │ rebuild automatically the next time Python runs.                │
+│ ── command ──                                                   │
+│ find . -name "*.pyc" -delete                                    │
 │                                    [Reject] [Always ▾] [Run]    │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
-Reading order on Desktop: the risk verdict first, then the exact command, then the longer explanation. If the explanation is long, the box scrolls. The risk line and the command come first, so they are in the first lines you see without scrolling (a very long multi-line command can still push things down). The explanation is kept short on purpose (see `desktop_max_words` in Settings).
+Reading order on Desktop: the risk verdict first, then the explanation, then the exact command. The box shows about 7 lines and scrolls. A long explanation can push the command below what you see, so scroll down to read it before you approve. The explanation is kept short on purpose (see `desktop_max_words` in Settings).
 
 In the terminal (CLI), the summary is the header line of the approval panel. The command sits beneath it. The same keys (o / s / a / d) work as before.
 
@@ -133,7 +133,7 @@ hermes config set plugins.entries.approval-tldr.settings.<key> <value>
 | `max_words` | whole number | `90` | Longest the summary may be (Telegram, Discord and the terminal). |
 | `desktop_max_words` | whole number | `60` | Longest the explanation may be in the Desktop box. Shorter than `max_words` because the box is small and scrolls. |
 | `llm_timeout_s` | number | `10` | Seconds to wait for the AI before showing the prompt without a summary. |
-| `desktop_inline` | true/false | `true` | On Desktop, put the summary inside the command box (risk line, then the command, then the explanation). Turn off once Hermes itself shows the description (#133398 fixed). |
+| `desktop_inline` | true/false | `true` | On Desktop, put the summary inside the command box (risk line, then the explanation, then the command). Turn off once Hermes itself shows the description (#133398 fixed). |
 | `language` | text | `en` | Language of the summary. |
 
 Examples:
@@ -153,7 +153,7 @@ Restart the gateway or Desktop backend after changing settings.
 - It cannot run, approve, or deny anything by itself. It only passes along the button or key you press.
 - It cannot give you more power than Hermes offered. If Hermes did not offer "Always" for a command, the plugin cannot make that choice happen.
 - It never changes the command that actually runs. Only the text shown to you changes.
-- It never hides that the summary is AI-written. Every prompt labels it, and the real command and the "why it was flagged" reason stay visible. On Desktop the command is the third line of the box, directly under the risk line.
+- It never hides that the summary is AI-written. Every prompt labels it, and the real command and the "why it was flagged" reason stay visible. On Desktop the command is the last part of the box, under the explanation.
 - If the AI call fails or is slow, you get a prompt that says the summary is unavailable. You never get a missing prompt or an automatic answer.
 - If the plugin breaks, you get Hermes' normal prompt (because of `transport_fallback builtin`). You never get a silent denial.
 
@@ -170,7 +170,7 @@ Honest caveats to that last promise:
 - **Smart approvals mode.** If `approvals.mode` is `smart`, Hermes' own checker sometimes approves a command without asking you. No prompt appears then, so no summary either. You see the summary only when Hermes does ask you.
 - **A small delay.** Each prompt waits for the AI call first. The aim is about 3 seconds. It is capped at `llm_timeout_s`. That time counts against Hermes' overall approval timeout, which is long enough that the 10-second default does not matter.
 - **It relies on Hermes internals.** The plugin calls a handful of internal Hermes functions (listed in docs/ARCHITECTURE.md) to show the prompt and wait for your answer. A Hermes update can rename them. If that happens you get the stock prompt again, not a crash. A daily GitHub Actions check ("upstream canary") tests this plugin against the latest Hermes code and release and opens an issue in this repo when something it relies on moves, so you hear about it before you update. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
-- **The Desktop workaround is a workaround.** The summary goes in the command box because the Desktop card hides the description (#133398). The box shows about 7 lines and scrolls, which is why the risk line and the command come first and the longer explanation comes last.
+- **The Desktop workaround is a workaround.** The summary goes in the command box because the Desktop card hides the description (#133398). The box shows about 7 lines and scrolls, which is why the explanation is kept short: a long one can push the command below the fold.
 - **Unattended runs are unchanged.** Scheduled (cron) jobs, quiet `-q` runs and similar sessions never ask a human through approval plugins (upstream #138083).
 - **No answer means "deny".** If nobody can answer a prompt (timeout, the card is withdrawn, or you send `/stop`), the plugin reports a denial to Hermes, so the agent is told you denied it. That is the safe direction.
 - **Fallback can ask twice.** If the plugin fails, times out, or you send `/stop`, Hermes falls back to its normal prompt. After a timeout you may be asked a second time, and the agent can wait up to about twice the approval timeout.
@@ -199,7 +199,7 @@ Either the transport is not selected, or the plugin failed and Hermes fell back.
 5. Is it a prompt type from the Limitations list? Those never show a summary.
 
 **On Desktop the summary is inside the command box, not above it.**
-That is on purpose. The Desktop card does not display the description text (upstream #133398). The risk line comes first, the command is the third line, and the longer explanation sits below it. Set `desktop_inline` to `false` once that bug is fixed.
+That is on purpose. The Desktop card does not display the description text (upstream #133398). The risk line comes first, then the explanation, then the command. Set `desktop_inline` to `false` once that bug is fixed.
 
 **Prompts take a few seconds longer than before.**
 That is the AI call. Use a faster model or lower `llm_timeout_s`.

@@ -201,6 +201,10 @@ stash value is trustworthy. Keep `present_fn` synchronous. The LLM time counts a
 - **Desktop layout changed** (B2): the card's command box is ~7 visible lines and scrolls, so the
   order is now risk line → `── command ──` → real command → `── what it does ──` → body capped at
   `desktop_max_words` (default 60). §2's Desktop mock-up is superseded by README.md.
+- **Desktop layout changed again** (B3): the user chose summary-first, so the order is now risk line →
+  `── what it does ──` → body (capped at `desktop_max_words`) → `── command ──` → real command (last).
+  Trade-off: a long explanation can push the command below the fold of the ~7-line scrolling box;
+  the word cap keeps that bounded. Only displayed strings change, never the executed command.
 - **Comment stripper** (B1): `#` starts a comment only at word start (line start or after whitespace,
   `;`, `&`, `|`, `(`, `{`), never when escaped/quoted; the model is told comments were removed.
 - **Deadline discipline** (S1): after the LLM call, `present()` checks `/stop` and a finished-set fed by

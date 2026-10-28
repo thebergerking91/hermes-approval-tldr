@@ -136,8 +136,10 @@ def test_e2e_gateway_once(registered, ctx, monkeypatch, platform, source, where)
     if where == "command":
         lines = notify.data["command"].split("\n")
         assert lines[0].endswith("Risk: HIGH — permanent loss")
-        assert lines[1:3] == ["── command ──", "rm -rf /tmp/example"]  # real command on line 3
-        assert "Deletes the temp folder and everything in it." in notify.data["command"]
+        assert lines[1] == "── what it does ──"  # summary above the command
+        assert lines[-2:] == ["── command ──", "rm -rf /tmp/example"]  # real command last
+        assert notify.data["command"].index("Deletes the temp folder and everything in it.") \
+            < notify.data["command"].index("rm -rf /tmp/example")
         assert notify.data["description"] == "recursive delete"
     else:
         assert SUMMARY in shown

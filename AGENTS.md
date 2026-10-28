@@ -44,7 +44,7 @@ CI: `.github/workflows/upstream-canary.yml` runs the seam check + suite against 
 
 - `request.surface` is `"gateway"` for **both** Desktop and Telegram; the stash's `source` (`desktop|tui`) / `platform` (`telegram`) tells them apart. Both are empty on the worker thread — capture them in `on_pre` only.
 - `get_current_session_key()` on the worker returns `"default"`; use the stashed `session_key`.
-- The Desktop card renders only the `command` field in a ~7-line scrolling box (upstream #133398): keep the real command on line 3, explanation last.
+- The Desktop card renders only the `command` field in a ~7-line scrolling box (upstream #133398): order is verdict (line 1) → explanation → real command last (summary-first, B3); keep the explanation word-capped so the command is not pushed far below the fold.
 - Telegram's 500-char reason cap is measured **after** `html.escape`; compose budgets must be too.
 - Bash `#` is a comment only at word start — do not "simplify" `strip_shell_comments` back to any-`#`.
 - A literal root-wipe command spelled out in any tracked `.md` trips validate's security scan.

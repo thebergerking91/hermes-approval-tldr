@@ -23,7 +23,7 @@ config_schema:
   desktop_inline:
     type: boolean
     default: true
-    description: "Put the summary inside the command box for Desktop sessions (the card hides the description, upstream #133398)"
+    description: "Put the summary inside the command box, above the command, for Desktop sessions (the card hides the description, upstream #133398)"
   desktop_max_words:
     type: integer
     default: 60

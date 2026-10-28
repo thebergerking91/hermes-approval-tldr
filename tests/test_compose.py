@@ -20,9 +20,12 @@ def run(compose_mod, surface="gateway", platform="", source="", label=LABEL, sum
 def test_desktop_inlines_summary_in_command(compose_mod, source):
     cmd, desc = run(compose_mod, platform="", source=source)
     body = "Deletes Python cache files under this folder. They rebuild by themselves."
-    assert cmd == (f"{LABEL} — Risk: LOW — harmless\n── command ──\n{CMD}\n"
-                   f"── what it does ──\n{body}")
-    assert cmd.split("\n")[2] == CMD  # the real command starts on line 3, above the fold
+    assert cmd == (f"{LABEL} — Risk: LOW — harmless\n── what it does ──\n{body}\n"
+                   f"── command ──\n{CMD}")
+    lines = cmd.split("\n")
+    assert lines[0].startswith(f"{LABEL} — Risk: LOW")  # verdict is line 1
+    assert cmd.index(body) < cmd.index(CMD)  # summary body comes before the command
+    assert lines[-1] == CMD  # the real command is last
     assert desc == DESC
 
 
@@ -66,7 +69,8 @@ def test_cli_has_no_cap_and_command_unchanged(compose_mod):
 
 def test_unknown_gateway_puts_summary_in_both(compose_mod):
     cmd, desc = run(compose_mod, surface="gateway", platform="", source="")
-    assert cmd.startswith(f"{LABEL} — Risk: LOW — harmless\n── command ──\n{CMD}")
+    assert cmd.startswith(f"{LABEL} — Risk: LOW — harmless\n── what it does ──\n")
+    assert cmd.endswith(f"── command ──\n{CMD}")
     assert SUMMARY in desc and "Flagged as" in desc
 
 
@@ -94,17 +98,18 @@ def test_real_command_is_never_altered_outside_desktop_box(compose_mod):
         cmd, _ = run(compose_mod, **kw)
         assert cmd == CMD
     cmd, _ = run(compose_mod, source="desktop")
-    assert cmd.split("\n")[2] == CMD and CMD in cmd
+    assert cmd.split("\n")[-1] == CMD and CMD in cmd
 
 
-# ── Desktop layout (B2) ──
-def test_desktop_command_is_line_3_even_with_long_summary(compose_mod):
+# ── Desktop layout (B3: summary first) ──
+def test_desktop_command_is_last_even_with_long_summary(compose_mod):
     long_summary = ("word " * 200) + "Risk: HIGH — " + ("because " * 50)
     cmd, _ = run(compose_mod, source="desktop", summary=long_summary)
     lines = cmd.split("\n")
     assert lines[0].startswith(f"{LABEL} — Risk: HIGH — because")
-    assert lines[1] == "── command ──" and lines[2] == CMD and lines[3] == "── what it does ──"
-    body = lines[4]
+    assert lines[1] == "── what it does ──"
+    body = lines[2]
+    assert lines[3:] == ["── command ──", CMD]
     assert len(body.split()) <= 60 and body.endswith("…")
     assert "Risk:" not in body
     assert len(lines[0]) < len(LABEL) + 40 + 90  # the reason is short
