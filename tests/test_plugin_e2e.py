@@ -40,6 +40,7 @@ def test_register_registers_everything(plugin, ctx):
     (key, kwargs), = ctx.aux_tasks
     assert key == "approval_summary"
     assert kwargs["inherit_from"] == "approval"
+    assert kwargs["defaults"] == {"reasoning_effort": "low"}
     assert kwargs["display_name"] == "Approval summary (approval-tldr)"
     assert kwargs["description"]
     assert plugin._CTX is ctx

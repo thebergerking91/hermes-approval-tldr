@@ -245,8 +245,10 @@ def summarize(llm_getter: Callable[[], Any], command: str, description: str, *, 
                             type(exc).__name__, exc)
                 raw = _complete_text(llm, messages, left, use_task=False)
             holder["text"] = sanitize(raw, max_words) or None
+            logger.info("approval-tldr: summary model answered in %.1fs", time.monotonic() - started)
         except Exception as exc:
-            logger.warning("approval-tldr: summary failed (%s: %s)", type(exc).__name__, exc)
+            logger.warning("approval-tldr: summary failed after %.1fs (%s: %s)",
+                           time.monotonic() - started, type(exc).__name__, exc)
 
     context = contextvars.copy_context()
     worker = threading.Thread(target=context.run, args=(_work,), name="approval-tldr-summary", daemon=True)
@@ -257,6 +259,7 @@ def summarize(llm_getter: Callable[[], Any], command: str, description: str, *, 
         logger.warning("approval-tldr: summary thread failed (%s)", exc)
         return PLACEHOLDER
     if worker.is_alive():
-        logger.warning("approval-tldr: summary timed out after %.1fs", timeout_s)
+        logger.warning("approval-tldr: summary timed out after %.1fs; pick a faster model via "
+                       "auxiliary.approval_summary or raise llm_timeout_s", timeout_s)
         return PLACEHOLDER
     return holder["text"] or PLACEHOLDER

@@ -146,7 +146,7 @@ hermes config set plugins.entries.approval-tldr.settings.<key> <value>
 | `label` | text | `AI summary (may be wrong — read the command)` | The warning text shown before the summary. |
 | `max_words` | whole number | `90` | Longest the summary may be (Telegram, Discord and the terminal). |
 | `desktop_max_words` | whole number | `60` | Longest the explanation may be in the Desktop box. Shorter than `max_words` because the box is small and scrolls. |
-| `llm_timeout_s` | number | `10` | Seconds to wait for the AI before showing the prompt without a summary. |
+| `llm_timeout_s` | number | `20` | Seconds to wait for the AI before showing the prompt without a summary. Never more than half the time left before Hermes' approval deadline. |
 | `desktop_inline` | true/false | `true` | On Desktop, put the summary inside the command box (risk line, then the explanation, then the command). Turn off once Hermes itself shows the description (#133398 fixed). |
 | `language` | text | `en` | Language of the summary. |
 
@@ -155,12 +155,24 @@ Examples:
 ```
 hermes config set plugins.entries.approval-tldr.settings.max_words 60
 hermes config set plugins.entries.approval-tldr.settings.desktop_max_words 40
-hermes config set plugins.entries.approval-tldr.settings.llm_timeout_s 5
+hermes config set plugins.entries.approval-tldr.settings.llm_timeout_s 15
 hermes config set plugins.entries.approval-tldr.settings.language de
 hermes config set plugins.entries.approval-tldr.settings.desktop_inline false
 ```
 
 Restart the gateway or Desktop backend after changing settings.
+
+### Choosing the summary model
+
+The summary uses Hermes' `approval_summary` auxiliary task. Unless you set it, it follows your `auxiliary.approval` model (the one smart approvals use), but asks for **low reasoning effort**: a one-paragraph summary does not need the deep reasoning you may have chosen for the smart-approval judgement, and high effort is what makes summaries miss the time limit. To use a different model or effort:
+
+```
+hermes config set auxiliary.approval_summary.provider <provider>
+hermes config set auxiliary.approval_summary.model <small-fast-model>
+hermes config set auxiliary.approval_summary.reasoning_effort low
+```
+
+`hermes config set` may warn that `auxiliary.approval_summary` "is not a recognized config key". That warning is only the CLI's static key list: plugin tasks are registered at runtime, and Hermes does read the value. Your own `auxiliary.approval_summary` settings always win over the plugin's defaults.
 
 ## What it can NEVER do
 
@@ -182,7 +194,7 @@ Honest caveats to that last promise:
 
 - **Only shell commands and Python scripts (`execute_code`) are covered.** Other prompts keep the stock look: saving a memory, writing to protected files, MCP consent, and approvals triggered by other plugins' rules. Hermes does not route those through approval plugins yet (upstream #133946, #120859).
 - **Smart approvals mode.** If `approvals.mode` is `smart`, Hermes' own checker sometimes approves a command without asking you. No prompt appears then, so no summary either. You see the summary only when Hermes does ask you.
-- **A small delay.** Each prompt waits for the AI call first. The aim is about 3 seconds. It is capped at `llm_timeout_s`. That time counts against Hermes' overall approval timeout, which is long enough that the 10-second default does not matter.
+- **A small delay.** Each prompt waits for the AI call first. The aim is about 3 seconds. It is capped at `llm_timeout_s` (20 seconds by default) and at half the time left before Hermes' approval deadline, so you always keep at least half of the window to read and answer.
 - **It relies on Hermes internals.** The plugin calls a handful of internal Hermes functions (listed in docs/ARCHITECTURE.md) to show the prompt and wait for your answer. A Hermes update can rename them. If that happens you get the stock prompt again, not a crash. A daily GitHub Actions check ("upstream canary") tests this plugin against the latest Hermes code and release and opens an issue in this repo when something it relies on moves, so you hear about it before you update. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 - **The Desktop workaround is a workaround.** The summary goes in the command box because the Desktop card hides the description (#133398). The box shows about 7 lines and scrolls, which is why the explanation is kept short: a long one can push the command below the fold.
 - **Unattended runs are unchanged.** Scheduled (cron) jobs, quiet `-q` runs and similar sessions never ask a human through approval plugins (upstream #138083).
@@ -207,7 +219,7 @@ What a careful person would want to know before installing:
 ## Troubleshooting
 
 **The summary says "AI summary unavailable."**
-The AI call timed out or failed. Check that your summary model works (`auxiliary.approval_summary.*`, or your main model). Try a faster model, or raise `llm_timeout_s`.
+The AI call timed out or failed. `hermes logs --level INFO | grep -i "approval-tldr: summary"` shows how long each summary took (`answered in`, `timed out after`, `failed after`) and which model ran it (`plugin=approval-tldr`). Check that your summary model works (`auxiliary.approval_summary.*`, which follows `auxiliary.approval` until you set it). A slow or high-reasoning model is the usual cause: pin a faster one (see "Choosing the summary model"), or raise `llm_timeout_s`.
 
 **The prompt looks like the old one, with no summary.**
 Either the transport is not selected, or the plugin failed and Hermes fell back. Check, in order:
