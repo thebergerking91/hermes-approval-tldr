@@ -2,7 +2,7 @@
 
 ![approval-tldr infographic](docs/artwork/01-infographic-approval-tldr.png)
 
-Version **1.0.0** retains the tested v0.1.1 native approval behavior. Catalog listing is subject to maintainer review; this repository is not an endorsement by Nous Research.
+Version **1.0.1** keeps the tested v0.1.1 native approval behavior and fixes summaries that timed out (see CHANGELOG). Catalog listing is subject to maintainer review; this repository is not an endorsement by Nous Research.
 
 Plain-English summaries on Hermes Agent approval prompts. A plugin for [Hermes Agent](https://github.com/NousResearch/hermes-agent) by Nous Research.
 
