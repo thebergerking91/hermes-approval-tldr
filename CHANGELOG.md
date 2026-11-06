@@ -6,6 +6,8 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-11-06
+
 ### Fixed
 - Summaries no longer time out because they inherit high reasoning effort from the smart-approval model. The `approval_summary` task still follows `auxiliary.approval`, but registers `reasoning_effort: low` as its default; a user's own `auxiliary.approval_summary` settings still win.
 - Default `llm_timeout_s` raised from 10 to 20 seconds, and the summary now gets at most half the time left before the host's approval deadline, so a slow model cannot eat the time to answer.
@@ -14,7 +16,8 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Make release creation safe to rerun, with exact remote tag verification and explicit failures for authentication, network and target mismatches. Document the tag-triggered workflow as the sole release creator.
 
 ### Unchanged
-- Plugin runtime, existing v1.0.0 tag and installed v0.1.1 remain unchanged. These maintenance changes are not a new release or a new catalog pin.
+- Approval binding, allowed-choice enforcement, deadlines, replay protection, redispatch and the placeholder path. No new settings.
+- `docs/catalog/approval-tldr.yaml` still pins v1.0.0; a catalog SHA bump is a separate, explicitly approved step.
 
 ## [1.0.0] - 2026-10-27
 
