@@ -105,7 +105,7 @@ provides_hooks: [pre_approval_request, post_approval_response]
 config_schema:
   label:            {type: string,  default: "AI summary (may be wrong — read the command)", description: Prefix shown before the paragraph}
   max_words:        {type: integer, default: 90,  description: Upper bound for the summary paragraph}
-  llm_timeout_s:    {type: number,  default: 10,  description: Seconds to wait for the summary before showing the prompt without it}
+  llm_timeout_s:    {type: number,  default: 20,  description: Seconds to wait for the summary before showing the prompt without it}
   desktop_inline:   {type: boolean, default: true, description: Put the summary inside the command box for Desktop sessions (card hides description, #133398)}
   language:         {type: string,  default: "en", description: Language for the summary}
 tags: [approvals, security, accessibility, desktop, telegram]
@@ -194,7 +194,7 @@ Three requirements that come out of it:
 
 Also: `get_current_session_key()` on the worker returns `"default"`, never the real key — **only** the
 stash value is trustworthy. Keep `present_fn` synchronous. The LLM time counts against the host's
-`approvals.timeout` (300 s here), so `llm_timeout_s=10` leaves ample room.
+`approvals.timeout` (300 s here), so `llm_timeout_s=20` leaves ample room; the summary is also capped at half the time left before the host deadline.
 
 ### 4.7 Post-review amendments (Opus review, 2026-10-18) — implemented in v0.1.0
 

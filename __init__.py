@@ -33,10 +33,15 @@ logger = logging.getLogger("plugins.approval-tldr")
 TRANSPORT_NAME = "tldr"
 HOOK_SURFACE = f"transport:{TRANSPORT_NAME}"
 AUX_TASK = "approval_summary"
+# The summary inherits the "approval" slot's route, which users often tune for the smart-approval
+# judgement (reasoning_effort: high). A one-paragraph summary under a hard wall-clock limit does not
+# need that, and high effort pushed real calls past the limit. Hermes layers these defaults over the
+# inherited base and under the user's own auxiliary.approval_summary block, so a user pin still wins.
+AUX_DEFAULTS = {"reasoning_effort": "low"}
 
 DEFAULT_LABEL = "AI summary (may be wrong — read the command)"
 DEFAULT_MAX_WORDS = 90
-DEFAULT_LLM_TIMEOUT_S = 10.0
+DEFAULT_LLM_TIMEOUT_S = 20.0
 DEFAULT_DESKTOP_MAX_WORDS = 60
 MIN_INNER_WAIT_S = 1.0  # below this much time left before the host deadline, don't show a card
 DEADLINE_MARGIN_S = 5.0  # finish the inner wait this long before the host's own deadline
@@ -146,6 +151,12 @@ def _inner_deadline_remaining(entry: StashEntry, request: Any) -> float:
     return entry.captured_at + timeout - margin - time.time()
 
 
+def _summary_budget(llm_timeout_s: float, remaining_s: float) -> float:
+    """Wall-clock limit for the summary: ``llm_timeout_s``, but never more than half the time left
+    before the host deadline, so a slow model cannot eat the human's time to read and answer."""
+    return max(1.0, min(float(llm_timeout_s), remaining_s / 2.0))
+
+
 def present(request: Any) -> Any:
     """Summarize, compose, re-dispatch, and return the human's (clamped) decision."""
     entry: Optional[StashEntry] = _STASH.pop(request.request_id)
@@ -165,7 +176,8 @@ def _present_scoped(request: Any, entry: StashEntry) -> Any:
         cfg = _settings()
         summary = _summarize.summarize(
             _get_llm, request.command, request.description, max_words=cfg["max_words"],
-            timeout_s=cfg["llm_timeout_s"], language=cfg["language"])
+            timeout_s=_summary_budget(cfg["llm_timeout_s"], _inner_deadline_remaining(entry, request)),
+            language=cfg["language"])
         # The summary can take seconds: the host may have timed out, or the user hit /stop, meanwhile.
         # A card posted now would be an orphan (Telegram resolves FIFO per session, so it would swallow
         # the NEXT approval tap) and would keep the agent waiting.
@@ -202,7 +214,7 @@ def register(ctx: Any) -> None:
             AUX_TASK, display_name="Approval summary (approval-tldr)",
             description="Writes the plain-English summary shown on approval prompts. "
                         "Pin a small, cheap model here via auxiliary.approval_summary.model.",
-            inherit_from="approval")
+            defaults=dict(AUX_DEFAULTS), inherit_from="approval")
     except Exception as exc:  # older Hermes or name clash: summaries just use the default model
         logger.warning("approval-tldr: auxiliary task registration unavailable (%s); "
                        "using the default model", exc)

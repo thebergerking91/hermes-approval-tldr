@@ -7,6 +7,9 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 ## [Unreleased]
 
 ### Fixed
+- Summaries no longer time out because they inherit high reasoning effort from the smart-approval model. The `approval_summary` task still follows `auxiliary.approval`, but registers `reasoning_effort: low` as its default; a user's own `auxiliary.approval_summary` settings still win.
+- Default `llm_timeout_s` raised from 10 to 20 seconds, and the summary now gets at most half the time left before the host's approval deadline, so a slow model cannot eat the time to answer.
+- Logs now record how long each summary took (`answered in`, `failed after`), and the timeout warning names the two settings that fix it. README documents choosing the summary model and that the CLI's "not a recognized config key" warning for `auxiliary.approval_summary` is harmless.
 - Reconcile catalog checklists with the published v1.0.0 evidence, distinguishing completed validation from unresolved admission review.
 - Make release creation safe to rerun, with exact remote tag verification and explicit failures for authentication, network and target mismatches. Document the tag-triggered workflow as the sole release creator.
 
