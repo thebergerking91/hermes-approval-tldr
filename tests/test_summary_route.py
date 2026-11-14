@@ -2,6 +2,12 @@
 
 The route tests use Hermes' real auxiliary-task registry entry builder and read-time resolver against
 a scratch config.yaml, so they prove what Hermes would actually send, not what the plugin passes.
+
+Since hermes-agent 18a2118b4f, a plugin task inheriting a built-in slot (``auxiliary.approval``)
+carries that slot's route (provider, model, reasoning_effort, ...) only when the operator grants
+``plugins.entries.approval-tldr.llm.allow_task_override``; without it, only non-route policy such
+as ``timeout`` is inherited and the summary runs on the plugin defaults / the main model. Older
+Hermes inherits the route unconditionally, so the "granted" tests hold on both.
 """
 
 from __future__ import annotations
@@ -17,7 +23,13 @@ APPROVAL_SLOT = {"provider": "openai-codex", "model": "slow-reasoner", "timeout"
                  "reasoning_effort": "high"}
 
 
-def _resolved_summary_route(plugin, ctx, monkeypatch, home, user_summary_block=None):
+def _upstream_gates_inherited_route() -> bool:
+    """True on Hermes that strips a core slot's route from an ungranted plugin task."""
+    import agent.auxiliary_task_config as atc
+    return hasattr(atc, "_INHERITED_ROUTE_KEYS")
+
+
+def _resolved_summary_route(plugin, ctx, monkeypatch, home, user_summary_block=None, *, granted=True):
     import hermes_yaml as yaml
     from hermes_cli import plugins as hermes_plugins
     from hermes_cli.plugins_aux_tasks import build_auxiliary_task_entry
@@ -26,7 +38,10 @@ def _resolved_summary_route(plugin, ctx, monkeypatch, home, user_summary_block=N
     aux = {"approval": dict(APPROVAL_SLOT)}
     if user_summary_block is not None:
         aux["approval_summary"] = user_summary_block
-    (home / "config.yaml").write_text(yaml.safe_dump({"auxiliary": aux}), encoding="utf-8")
+    cfg = {"auxiliary": aux}
+    if granted:
+        cfg["plugins"] = {"entries": {"approval-tldr": {"llm": {"allow_task_override": True}}}}
+    (home / "config.yaml").write_text(yaml.safe_dump(cfg), encoding="utf-8")
 
     plugin.register(ctx)
     (key, kwargs), = ctx.aux_tasks
@@ -55,6 +70,25 @@ def test_user_effort_override_without_pinning_a_model(plugin, ctx, monkeypatch, 
     route = _resolved_summary_route(plugin, ctx, monkeypatch, _scratch_hermes_home,
                                     {"reasoning_effort": "high"})
     assert route["model"] == "slow-reasoner" and route["reasoning_effort"] == "high"
+
+
+def test_without_the_grant_summary_keeps_low_effort_and_the_approval_timeout(plugin, ctx, monkeypatch,
+                                                                             _scratch_hermes_home):
+    if not _upstream_gates_inherited_route():
+        pytest.skip("this Hermes inherits a core slot's route without llm.allow_task_override")
+    route = _resolved_summary_route(plugin, ctx, monkeypatch, _scratch_hermes_home, granted=False)
+    # The approval slot's provider/model and its high effort are not carried over; the summary runs
+    # on the main model with the plugin's own low-effort default, and still inherits the timeout.
+    assert not {"provider", "model", "base_url", "api_key"} & set(route)
+    assert route["reasoning_effort"] == "low"
+    assert route["timeout"] == 30
+
+
+def test_without_the_grant_a_user_pin_still_wins(plugin, ctx, monkeypatch, _scratch_hermes_home):
+    route = _resolved_summary_route(
+        plugin, ctx, monkeypatch, _scratch_hermes_home,
+        {"provider": "anthropic", "model": "small-fast"}, granted=False)
+    assert (route["provider"], route["model"]) == ("anthropic", "small-fast")
 
 
 # ── Time budget ──

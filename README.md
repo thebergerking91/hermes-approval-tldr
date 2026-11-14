@@ -129,7 +129,7 @@ hermes config set auxiliary.approval_summary.model <model-name>
 
 Replace `<provider>` and `<model-name>` with values you already use elsewhere in Hermes.
 
-If you set nothing, the plugin uses the same model setup as Hermes' "smart approvals" feature (the `approval` auxiliary task). If that does not resolve to a working model, it uses your main model.
+If you set nothing, the plugin uses your main model. It can instead follow the model used by Hermes' "smart approvals" feature (the `approval` auxiliary task), but newer Hermes versions only allow that after you say so (see "Choosing the summary model" below).
 
 A faster model means a shorter wait before each prompt.
 
@@ -164,7 +164,20 @@ Restart the gateway or Desktop backend after changing settings.
 
 ### Choosing the summary model
 
-The summary uses Hermes' `approval_summary` auxiliary task. Unless you set it, it follows your `auxiliary.approval` model (the one smart approvals use), but asks for **low reasoning effort**: a one-paragraph summary does not need the deep reasoning you may have chosen for the smart-approval judgement, and high effort is what makes summaries miss the time limit. To use a different model or effort:
+The summary uses Hermes' `approval_summary` auxiliary task. It always asks for **low reasoning effort**: a one-paragraph summary does not need deep reasoning, and high effort is what makes summaries miss the time limit.
+
+Which model runs it, if you set nothing:
+
+- **Newer Hermes** (after v0.23.2): your main model. To have it follow your `auxiliary.approval` model (the one smart approvals use) instead, give the plugin permission:
+
+  ```
+  hermes config set plugins.entries.approval-tldr.llm.allow_task_override true
+  ```
+
+  This is Hermes' own safety switch: a plugin may not spend through a built-in model slot unless you allow it. approval-tldr only ever calls its own `approval_summary` task.
+- **Older Hermes**: it follows your `auxiliary.approval` model automatically.
+
+To pick a model yourself (works on every version, no permission needed):
 
 ```
 hermes config set auxiliary.approval_summary.provider <provider>
@@ -219,7 +232,7 @@ What a careful person would want to know before installing:
 ## Troubleshooting
 
 **The summary says "AI summary unavailable."**
-The AI call timed out or failed. `hermes logs --level INFO | grep -i "approval-tldr: summary"` shows how long each summary took (`answered in`, `timed out after`, `failed after`) and which model ran it (`plugin=approval-tldr`). Check that your summary model works (`auxiliary.approval_summary.*`, which follows `auxiliary.approval` until you set it). A slow or high-reasoning model is the usual cause: pin a faster one (see "Choosing the summary model"), or raise `llm_timeout_s`.
+The AI call timed out or failed. `hermes logs --level INFO | grep -i "approval-tldr: summary"` shows how long each summary took (`answered in`, `timed out after`, `failed after`) and which model ran it (`plugin=approval-tldr`). Check that your summary model works (`auxiliary.approval_summary.*`; until you set it, that is your main model, or `auxiliary.approval` on older Hermes or with `llm.allow_task_override`). A slow or high-reasoning model is the usual cause: pin a faster one (see "Choosing the summary model"), or raise `llm_timeout_s`.
 
 **The prompt looks like the old one, with no summary.**
 Either the transport is not selected, or the plugin failed and Hermes fell back. Check, in order:

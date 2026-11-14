@@ -37,6 +37,9 @@ AUX_TASK = "approval_summary"
 # judgement (reasoning_effort: high). A one-paragraph summary under a hard wall-clock limit does not
 # need that, and high effort pushed real calls past the limit. Hermes layers these defaults over the
 # inherited base and under the user's own auxiliary.approval_summary block, so a user pin still wins.
+# Newer Hermes carries the approval slot's route over only with the operator's
+# plugins.entries.approval-tldr.llm.allow_task_override grant; without it the summary runs on the
+# main model and these defaults still apply.
 AUX_DEFAULTS = {"reasoning_effort": "low"}
 
 DEFAULT_LABEL = "AI summary (may be wrong — read the command)"
