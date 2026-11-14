@@ -6,6 +6,12 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Changed
+- Newer Hermes (main after v0.23.2-rc.7, upstream commit `18a2118b4f`) only lets a plugin task follow a built-in auxiliary slot's model when the operator grants `plugins.entries.approval-tldr.llm.allow_task_override`. Without that grant, summaries no longer follow `auxiliary.approval`: they run on your main model (still at low reasoning effort, still with the approval slot's timeout). The plugin code is unchanged and works either way; README explains the grant and the alternative of pinning `auxiliary.approval_summary.*`.
+
+### Tests
+- Route tests now set the grant when they check inheritance, and cover the ungranted path (skipped on Hermes versions without the gate). Fixes the `main` upstream-canary break (#15).
+
 ## [1.0.1] - 2026-11-06
 
 ### Fixed
