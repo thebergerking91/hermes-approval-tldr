@@ -6,11 +6,17 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-11-14
+
 ### Changed
 - Newer Hermes (main after v0.23.2-rc.7, upstream commit `18a2118b4f`) only lets a plugin task follow a built-in auxiliary slot's model when the operator grants `plugins.entries.approval-tldr.llm.allow_task_override`. Without that grant, summaries no longer follow `auxiliary.approval`: they run on your main model (still at low reasoning effort, still with the approval slot's timeout). The plugin code is unchanged and works either way; README explains the grant and the alternative of pinning `auxiliary.approval_summary.*`.
 
 ### Tests
 - Route tests now set the grant when they check inheritance, and cover the ungranted path (skipped on Hermes versions without the gate). Fixes the `main` upstream-canary break (#15).
+
+### Unchanged
+- Plugin runtime is identical to v1.0.1; no internal Hermes seam moved, so `requires_hermes` stays `>=0.22.2`.
+- `docs/catalog/approval-tldr.yaml` still pins v1.0.0; a catalog SHA bump is a separate, explicitly approved step.
 
 ## [1.0.1] - 2026-11-06
 
@@ -68,6 +74,8 @@ Fixes from the security review, all before the first release:
 - Documentation corrected to the real Telegram card order (summary inside "Why it was flagged") and to state the fallback caveats honestly (second prompt after a timeout, "denied" reported on no answer, oldest-first answering on Telegram).
 - Divider defusing: runs of box-drawing/dash characters in the model's text are collapsed so the summary cannot impersonate the `── command ──` line above the real command on Desktop.
 
+[1.0.2]: https://github.com/thebergerking91/hermes-approval-tldr/compare/v1.0.1...v1.0.2
+[1.0.1]: https://github.com/thebergerking91/hermes-approval-tldr/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/thebergerking91/hermes-approval-tldr/compare/v0.1.1...v1.0.0
 [0.1.1]: https://github.com/thebergerking91/hermes-approval-tldr/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/thebergerking91/hermes-approval-tldr/releases/tag/v0.1.0
