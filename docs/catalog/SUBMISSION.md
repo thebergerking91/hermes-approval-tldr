@@ -1,4 +1,7 @@
-# Catalog submission kit — published v1.0.0 candidate
+# Catalog submission kit — current candidate v1.0.3
+
+**Current candidate:** `69cd0a8baaa10b1b7034205a4b19fac331d5a173` ([v1.0.3](https://github.com/thebergerking91/hermes-approval-tldr/releases/tag/v1.0.3)). Revalidated at that exact commit on 2026-11-15 against Hermes v0.23.1: `hermes plugins validate --install-deps` passed, doctor reported two hooks and zero tools, and the suite ran 183 passed, 1 skipped, with the seam check OK. The [validator](https://github.com/thebergerking91/hermes-approval-tldr/releases/download/v1.0.3/v1.0.3-validation.txt), [doctor](https://github.com/thebergerking91/hermes-approval-tldr/releases/download/v1.0.3/v1.0.3-doctor.txt) and [test](https://github.com/thebergerking91/hermes-approval-tldr/releases/download/v1.0.3/v1.0.3-tests.txt) receipts and the [fully pinned entry](https://github.com/thebergerking91/hermes-approval-tldr/releases/download/v1.0.3/approval-tldr.yaml) are attached to that release by the Release workflow, as they are for every later release; banner and screenshot exist at their pinned paths in that tree. The runtime differs from v1.0.0 as recorded in the [CHANGELOG](../../CHANGELOG.md) (summary timeouts, the summary-model permission, one card for identical parallel commands). No live surface test was repeated for v1.0.3. The v1.0.0 text below is history.
+
 
 **Not accepted; no catalog PR was created.** v1.0.0 packages the live-tested native v0.1.1 runtime unchanged, with catalog documentation and artwork; it is not a UI redesign. The owner authorized a submission attempt, but GitHub refused PR creation. That attempt is not a completed submission or standing approval for unrelated upstream changes. [Official guide](https://hermes-agent.nousresearch.com/docs/developer-guide/plugins/catalog-submission) · [rules 1–18 and exact-pin evidence](COMPLIANCE.md).
 
@@ -18,7 +21,7 @@ This document's corrections are later maintenance, not changes to the immutable 
 
 ## Draft PR title
 
-`plugin-catalog: add approval-tldr (community, tools) — v1.0.0 @ <FINAL_COMMIT_SHA>`
+`plugin-catalog: add approval-tldr (community, tools) — v1.0.3 @ 69cd0a8baaa10b1b7034205a4b19fac331d5a173`
 
 ## Draft PR description
 
@@ -28,7 +31,7 @@ This document's corrections are later maintenance, not changes to the immutable 
 
 **Disclosures.** Host-redacted command text and flag reason go through `ctx.llm` to the configured model provider; redaction is best effort and the AI can be wrong or influenced by untrusted text. The native v0.1.1 plugin runtime does not directly read credential stores, write files, launch processes or make other direct network calls; Hermes and its provider may perform their own operations, including logging. The plugin starts a bounded summary thread and a deadline timer for a pending gateway card; it runs in-process. It clamps choices to those offered; non-answers map to deny, while delivery failure raises. Configuring host-wide `transport_fallback: builtin` enables the stock prompt on transport failure and can result in a second question; without it the host default may deny. Internal seams may break on a host update. [Details](../../README.md#disclosure).
 
-**Evidence:** The v1.0.0 exact-pin receipts show 162 tests, official `--install-deps` validation and doctor passing. The v0.1.1 runtime also had a human-confirmed live Desktop test in which the AI summary appeared above the command and denial prevented execution ([CHANGELOG](../../CHANGELOG.md)). This is not evidence of live tests on every surface. A real native Desktop screenshot is included and its limitations are stated in the README. If the proposed pin changes, replace these historical claims with actual new-pin evidence.
+**Evidence:** The v1.0.3 exact-pin receipts attached to its release show 183 tests passing (1 skipped), official `--install-deps` validation and doctor passing; the v1.0.0 receipts showed the same for 162 tests. The v0.1.1 runtime also had a human-confirmed live Desktop test in which the AI summary appeared above the command and denial prevented execution ([CHANGELOG](../../CHANGELOG.md)). This is not evidence of live tests on every surface. A real native Desktop screenshot is included and its limitations are stated in the README. If the proposed pin changes, replace these historical claims with actual new-pin evidence.
 
 ## Rule 9 review
 
