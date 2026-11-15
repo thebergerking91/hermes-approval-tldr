@@ -52,7 +52,7 @@ Not in the issue tracker — see `SECURITY.md`.
    GitHub Release whose first line is the **catalog pin** (the full 40-character SHA).
 3. Let the tag-triggered workflow be the **only release creator**. Do not run `gh release create`
    alongside it. Wait for the Release job to succeed, verify the published tag resolves to the
-   intended commit, then upload any validation logs or pinned catalog YAML with `gh release upload`.
+   intended commit. The workflow attaches the validation logs and pinned catalog YAML itself (step 5).
    Reruns verify an existing stable release and leave its notes/assets unchanged. Auth/network
    errors and mismatched targets are failures, not reasons to create or overwrite a release.
    Verify test CI, canary and Release independently; a published release alone does not prove
@@ -62,10 +62,12 @@ Not in the issue tracker — see `SECURITY.md`.
    `plugin-catalog/approval-tldr.yaml` (`sha:` and `version:`), linking the release.
    Users receive the update through `hermes plugins update approval-tldr` once that PR merges.
    The tag is for people; the SHA is what installs.
-5. Every release is the new catalog candidate. Once the tag exists, revalidate that exact SHA
-   (`hermes plugins validate <checkout> --install-deps`, `hermes plugins doctor <checkout> --ci`,
-   the test suite) and commit the output under `docs/catalog/receipts/vX.Y.Z/` together with
-   `approval-tldr.pinned.yaml`: the catalog entry with every `<FINAL_COMMIT_SHA>` replaced by
-   the tagged commit, `sha:` and both image URLs alike. Update the "current candidate" lines in
-   `docs/catalog/SUBMISSION.md` and `COMPLIANCE.md`. Evidence for an older release is
-   historical, not validation of the new tree.
+5. Every release is the new catalog candidate, and its evidence is automatic. After the release
+   is published, the `catalog evidence` job of the `Release` workflow validates the tagged commit
+   (`hermes plugins validate --install-deps`, `hermes plugins doctor --ci`, the test suite and
+   the seam check against the newest stable Hermes) and attaches four files to the release:
+   `vX.Y.Z-validation.txt`, `vX.Y.Z-doctor.txt`, `vX.Y.Z-tests.txt` and `approval-tldr.yaml`,
+   the catalog entry pinned to that commit. Nothing is pinned by hand. If the job fails, fix the
+   cause and re-run it from the Actions tab (`Release` → *Run workflow* → the tag); it never
+   replaces an asset that exists. Evidence for an older release is historical, not validation of
+   a newer tree.

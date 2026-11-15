@@ -10,9 +10,23 @@ name: Release
 # strict regex before it is used, and it comes from `github.ref_name` (a pushed tag, which only
 # someone with push rights can create — the tag ruleset blocks moving or deleting one).
 
+#
+# Catalog evidence: every release is the new catalog candidate, so a second job checks the tagged
+# tree out, runs the official validator, doctor, the test suite and the seam check against the
+# newest stable Hermes, pins the catalog entry to the tagged commit (scripts/catalog_pin.py) and
+# attaches all four files to the release. Nothing is committed back and no asset that already
+# exists is replaced. `workflow_dispatch` re-runs only that job for an existing tag (back-fill or
+# retry); it can never create a release. The write token reaches the upload step only.
+
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing vX.Y.Z release tag to attach catalog evidence to"
+        required: true
+        type: string
 
 permissions: {}
 
@@ -22,6 +36,7 @@ concurrency:
 
 jobs:
   release:
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -77,3 +92,129 @@ jobs:
         run: |
           set -euo pipefail
           python3 scripts/release.py
+
+  catalog-evidence:
+    name: catalog evidence
+    needs: release
+    # Runs after a successful tag release, or alone when dispatched by hand for an existing tag.
+    if: ${{ always() && (needs.release.result == 'success' || github.event_name == 'workflow_dispatch') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    env:
+      TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+    steps:
+      - name: Validate the tag name
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::tag '$TAG' is not vX.Y.Z"; exit 1
+          fi
+
+      - name: Checkout this workflow's scripts
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          path: tools
+          persist-credentials: false
+
+      - name: Checkout the tagged plugin tree
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          ref: refs/tags/${{ env.TAG }}
+          path: pin
+          persist-credentials: false
+
+      - name: Checkout hermes-agent (full tags so the newest stable one can be resolved)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          repository: NousResearch/hermes-agent
+          path: hermes-agent
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check out the newest stable hermes-agent tag
+        shell: bash
+        working-directory: hermes-agent
+        run: |
+          set -euo pipefail
+          tag=$(git for-each-ref --sort=-creatordate --format='%(refname:short)' refs/tags \
+                | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
+          echo "Validating against hermes-agent $tag"
+          git checkout -q "$tag"
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
+        with:
+          python-version: "3.11"
+
+      - name: Install what the Hermes CLI and the plugin's import graph need
+        run: python -m pip install -q pytest requests psutil "ruamel.yaml" rich httpx pyyaml python-dotenv
+
+      - name: Validate, doctor, test and pin the tagged commit
+        shell: bash
+        env:
+          PYTHONPATH: ${{ github.workspace }}/hermes-agent
+        run: |
+          set -euo pipefail
+          sha=$(git -C pin rev-parse --verify 'HEAD^{commit}')
+          host="hermes-agent $(git -C hermes-agent describe --tags) ($(git -C hermes-agent rev-parse HEAD)), run from source checkout"
+          out="$RUNNER_TEMP/evidence"; mkdir -p "$out"
+          export COLUMNS=200  # keep the CLI from wrapping long paths, so the path scrub below matches
+
+          receipt() {  # receipt <file> <command as shown> <command...>: header, output, exit code; fails on non-zero
+            local file="$out/$1" shown="$2"; shift 2
+            export HERMES_HOME; HERMES_HOME=$(mktemp -d)
+            {
+              echo "# command: $shown"
+              echo "# plugin: $GITHUB_REPOSITORY @ $sha (tag $TAG)"
+              echo "# host: $host"
+              echo "# environment: GitHub Actions $RUNNER_OS, $(python --version), $(date -u +%Y-%m-%dT%H:%MZ), run $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+              echo "# note: the checkout path in the output below is replaced with <checkout>"
+              echo
+            } > "$file"
+            local rc=0
+            "$@" > "$RUNNER_TEMP/raw.txt" 2>&1 || rc=$?
+            sed "s#$GITHUB_WORKSPACE/pin#<checkout>#g" "$RUNNER_TEMP/raw.txt" | tee -a "$file"
+            echo "exit=$rc" >> "$file"
+            if [ "$rc" -ne 0 ]; then echo "::error::'$shown' failed for $TAG"; exit "$rc"; fi
+          }
+
+          receipt "$TAG-validation.txt" "hermes plugins validate <checkout> --install-deps" \
+            python -m hermes_cli.main plugins validate "$GITHUB_WORKSPACE/pin" --install-deps
+          grep -q "Validation passed" "$out/$TAG-validation.txt"
+          receipt "$TAG-doctor.txt" "hermes plugins doctor <checkout> --ci" \
+            python -m hermes_cli.main plugins doctor "$GITHUB_WORKSPACE/pin" --ci
+          grep -q "2 hook(s)" "$out/$TAG-doctor.txt"
+          receipt "$TAG-tests.txt" "python -m pytest tests -q && python scripts/seam_check.py (in <checkout>)" \
+            bash -c 'cd "$GITHUB_WORKSPACE/pin" && python -m pytest tests -q -p no:cacheprovider && python scripts/seam_check.py'
+
+          python tools/scripts/catalog_pin.py "$GITHUB_WORKSPACE/pin" "$sha" > "$out/approval-tldr.yaml"
+          echo "sha=$sha" >> "$GITHUB_ENV"
+          ls -l "$out"
+
+      - name: Attach the evidence to the release (existing assets are left unchanged)
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # Only a stable, published release whose tag resolves to the validated commit may receive assets.
+          remote=$(gh api --method GET "repos/$GITHUB_REPOSITORY/commits/$TAG" --jq .sha)
+          if [ "$remote" != "$sha" ]; then
+            echo "::error::remote tag $TAG resolves to $remote, not the validated commit $sha"; exit 1
+          fi
+          state=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json isDraft,isPrerelease --jq '"\(.isDraft) \(.isPrerelease)"')
+          if [ "$state" != "false false" ]; then
+            echo "::error::release $TAG is not a published stable release"; exit 1
+          fi
+          have=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name')
+          for file in "$RUNNER_TEMP/evidence"/*; do
+            name=$(basename "$file")
+            if grep -qxF "$name" <<<"$have"; then
+              echo "asset $name already exists; leaving it unchanged"
+            else
+              gh release upload "$TAG" "$file" --repo "$GITHUB_REPOSITORY"
+              echo "attached $name"
+            fi
+          done

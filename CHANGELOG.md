@@ -8,7 +8,8 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Changed
 - The catalog entry now moves with every release. `docs/catalog/approval-tldr.yaml` names v1.0.3, and the test suite and the Release workflow refuse a release whose catalog entry names another version.
-- v1.0.3 (`69cd0a8baaa10b1b7034205a4b19fac331d5a173`) is the current catalog candidate. Its exact-commit validator, doctor and test output and the fully pinned entry are in `docs/catalog/receipts/v1.0.3/`. Opening the catalog PR on NousResearch/hermes-agent is still a separate, explicitly approved step.
+- Every release now gets its catalog evidence automatically. After publishing, the Release workflow validates the tagged commit with the official validator, doctor, the test suite and the seam check, and attaches that output plus the catalog entry pinned to that commit (`scripts/catalog_pin.py`) to the GitHub release. Nothing is pinned by hand. The same job can be run by hand for an existing tag.
+- v1.0.3 (`69cd0a8baaa10b1b7034205a4b19fac331d5a173`) is the current catalog candidate in the submission and compliance docs.
 
 ## [1.0.3] - 2026-11-15
 

@@ -1,6 +1,6 @@
-# Draft only: finalize ALL <FINAL_COMMIT_SHA> placeholders AFTER the final public
-# packaging commit exists. Each must be its exact 40-character commit SHA.
-# The artwork must exist at this path in that same committed tree.
+# Template: <FINAL_COMMIT_SHA> stays a placeholder here because a commit cannot contain its own
+# SHA. Do not edit a pinned copy by hand: the Release workflow runs scripts/catalog_pin.py on the
+# tagged tree and attaches the pinned entry to the GitHub release as `approval-tldr.yaml`.
 # `version` and `requires_hermes` must equal plugin.yaml: bump them in the release PR
 # (tests/test_catalog_entry.py and the Release workflow both refuse a mismatch).
 name: approval-tldr
