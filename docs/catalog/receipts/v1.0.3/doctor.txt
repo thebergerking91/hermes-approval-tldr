@@ -1,0 +1,12 @@
+# command: hermes plugins doctor <checkout> --ci
+# plugin: thebergerking91/hermes-approval-tldr @ 69cd0a8baaa10b1b7034205a4b19fac331d5a173 (tag v1.0.3)
+# host: hermes-agent v0.23.1 (3b421578588243f920886e6fe79a6faa87ea026e), run from source checkout
+# environment: Linux cloud container, Python 3.13.18, 2026-11-15T20:25Z
+# note: local checkout paths in the output below are replaced with <checkout>
+
+Plugin Doctor: 
+<checkout>
+  manifest: approval-tldr 1.0.3 (standalone)
+  OK: runtime discovery, manifest parsing, import, and registration passed
+  registrations: 0 tool(s), 2 hook(s)
+exit=0

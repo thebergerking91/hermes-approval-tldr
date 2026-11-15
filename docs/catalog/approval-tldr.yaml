@@ -1,6 +1,8 @@
 # Draft only: finalize ALL <FINAL_COMMIT_SHA> placeholders AFTER the final public
 # packaging commit exists. Each must be its exact 40-character commit SHA.
 # The artwork must exist at this path in that same committed tree.
+# `version` and `requires_hermes` must equal plugin.yaml: bump them in the release PR
+# (tests/test_catalog_entry.py and the Release workflow both refuse a mismatch).
 name: approval-tldr
 repo: https://github.com/thebergerking91/hermes-approval-tldr
 sha: <FINAL_COMMIT_SHA>
@@ -10,7 +12,7 @@ tier: community
 category: tools
 requires_hermes: ">=0.22.2"
 docs_url: https://github.com/thebergerking91/hermes-approval-tldr#readme
-version: "1.0.0"
+version: "1.0.3"
 image: https://raw.githubusercontent.com/thebergerking91/hermes-approval-tldr/<FINAL_COMMIT_SHA>/docs/artwork/01-infographic-approval-tldr.png
 screenshots:
   - https://raw.githubusercontent.com/thebergerking91/hermes-approval-tldr/<FINAL_COMMIT_SHA>/docs/screenshots/native-desktop-approval.png

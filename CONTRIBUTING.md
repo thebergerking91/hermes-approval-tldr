@@ -43,8 +43,10 @@ Not in the issue tracker — see `SECURITY.md`.
 
 ## Releasing (maintainer)
 
-1. In one PR: bump `version:` in `plugin.yaml`, move the *Unreleased* notes in `CHANGELOG.md`
-   under `## [X.Y.Z] - YYYY-MM-DD`, and merge.
+1. In one PR: bump `version:` in `plugin.yaml` **and** in `docs/catalog/approval-tldr.yaml` (keep
+   `requires_hermes` equal in both), move the *Unreleased* notes in `CHANGELOG.md` under
+   `## [X.Y.Z] - YYYY-MM-DD`, and merge. The catalog bump is part of every release: the test
+   suite and the `Release` workflow refuse a catalog entry that names another version.
 2. Tag the merge commit: `git tag -a vX.Y.Z <sha> -m "vX.Y.Z" && git push origin vX.Y.Z`. The
    `Release` workflow verifies the tag matches `plugin.yaml` and the CHANGELOG, then publishes a
    GitHub Release whose first line is the **catalog pin** (the full 40-character SHA).
@@ -60,5 +62,10 @@ Not in the issue tracker — see `SECURITY.md`.
    `plugin-catalog/approval-tldr.yaml` (`sha:` and `version:`), linking the release.
    Users receive the update through `hermes plugins update approval-tldr` once that PR merges.
    The tag is for people; the SHA is what installs.
-5. Revalidate the exact proposed SHA and update every SHA-pinned image URL when selecting a new
-   candidate. Evidence for an older release is historical, not validation of the new tree.
+5. Every release is the new catalog candidate. Once the tag exists, revalidate that exact SHA
+   (`hermes plugins validate <checkout> --install-deps`, `hermes plugins doctor <checkout> --ci`,
+   the test suite) and commit the output under `docs/catalog/receipts/vX.Y.Z/` together with
+   `approval-tldr.pinned.yaml`: the catalog entry with every `<FINAL_COMMIT_SHA>` replaced by
+   the tagged commit, `sha:` and both image URLs alike. Update the "current candidate" lines in
+   `docs/catalog/SUBMISSION.md` and `COMPLIANCE.md`. Evidence for an older release is
+   historical, not validation of the new tree.

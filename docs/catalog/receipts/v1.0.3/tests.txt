@@ -1,0 +1,30 @@
+# command: PYTHONPATH=<hermes> python -m pytest tests -q ; python scripts/seam_check.py
+# plugin: thebergerking91/hermes-approval-tldr @ 69cd0a8baaa10b1b7034205a4b19fac331d5a173 (tag v1.0.3)
+# host: hermes-agent v0.23.1 (3b421578588243f920886e6fe79a6faa87ea026e), run from source checkout
+# environment: Linux cloud container, Python 3.13.18, 2026-11-15T20:25Z
+# note: local checkout paths in the output below are replaced with <checkout>
+
+........................................................................ [ 39%]
+................................................................. [ 74%]
+.......................................s.......                          [100%]
+183 passed, 1 skipped, 7 subtests passed in 13.69s
+exit=0
+✓ tools.approval._gateway_notify_cb — ok
+✓ tools.approval.withdraw_gateway_approval — ok
+✓ tools.approval.resolve_gateway_approval — ok
+✓ tools.approval_gateway_wait._await_gateway_decision — ok
+✓ tools.approval_prompt.prompt_dangerous_approval — ok
+✓ tools.terminal_tool._get_approval_callback — ok
+✓ tools.interrupt.is_interrupted — ok
+✓ tools.interrupt.acting_for_tid — ok
+✓ gateway.session_context.get_session_env — ok
+✓ tools.approval_context._get_approval_timeout — ok
+✓ agent.plugin_llm.PluginLlmTrustError — ok
+✓ hermes_cli.approval_transport.ApprovalRequest — ok
+✓ hermes_cli.approval_transport.invoke_approval_transport — ok
+✓ ApprovalRequest fields — ok
+✓ pre_approval_request hook kwargs (transport path) — ok
+✓ gateway.session_context.get_session_env arity — ok
+
+SEAM CHECK: OK
+exit=0
