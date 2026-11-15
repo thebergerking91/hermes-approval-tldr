@@ -6,11 +6,17 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+## [1.0.3] - 2026-11-15
+
 ### Fixed
 - Newer Hermes (main after v0.23.1, upstream commit `b73018f424`) added an optional `identity` keyword to the internal wait function the plugin re-dispatches through. The plugin already worked there, but the seam check and one pinned-signature test flagged the new shape (#18). Both now accept the old and the new signature.
 
 ### Changed
 - On Hermes versions that have the new keyword, the plugin tells the host which command a card is about. Identical commands raised at the same time now share one card, even on Desktop where each card carries its own AI summary. Different commands still get separate cards. Older Hermes is unchanged.
+
+### Unchanged
+- Approval binding, allowed-choice enforcement, deadlines, replay protection and the placeholder path. No new settings; `requires_hermes` stays `>=0.22.2`.
+- `docs/catalog/approval-tldr.yaml` still pins v1.0.0; a catalog SHA bump is a separate, explicitly approved step.
 
 ## [1.0.2] - 2026-11-14
 
