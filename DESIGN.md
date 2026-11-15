@@ -155,7 +155,7 @@ The real command passed to Hermes is never changed; only the strings shown to th
 
 - Gateway/Desktop: `notify_cb = tools.approval._gateway_notify_cb(session_key)`; `None` → raise.
   `data = {command, description, pattern_key, pattern_keys, allow_permanent, allow_session, smart_denied?}` derived from
-  `request.allowed_choices`. `decision = _await_gateway_decision(session_key, notify_cb, data, surface="gateway")`.
+  `request.allowed_choices`. `decision = _await_gateway_decision(session_key, notify_cb, data, surface="gateway")`. On hosts whose signature has `identity` (main after v0.23.1), also pass `identity=request.command`.
   Map: `resolved and choice in allowed_choices` → that choice; `choice is None/deny` → `deny`;
   `cancelled` / not resolved → **do not answer** (sleep until the host deadline; the host records `timeout`, which is reported
   as "no response" rather than a user denial).

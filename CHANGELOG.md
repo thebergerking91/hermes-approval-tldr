@@ -6,6 +6,12 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+### Fixed
+- Newer Hermes (main after v0.23.1, upstream commit `b73018f424`) added an optional `identity` keyword to the internal wait function the plugin re-dispatches through. The plugin already worked there, but the seam check and one pinned-signature test flagged the new shape (#18). Both now accept the old and the new signature.
+
+### Changed
+- On Hermes versions that have the new keyword, the plugin tells the host which command a card is about. Identical commands raised at the same time now share one card, even on Desktop where each card carries its own AI summary. Different commands still get separate cards. Older Hermes is unchanged.
+
 ## [1.0.2] - 2026-11-14
 
 ### Changed

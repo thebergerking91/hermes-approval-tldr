@@ -10,6 +10,7 @@ line (and the host then falls back to its built-in prompt) instead of failing ob
 from __future__ import annotations
 
 import contextvars
+import inspect
 import logging
 import os
 import threading
@@ -40,13 +41,30 @@ def _hermes_notify_cb(session_key: str) -> Optional[Callable[[dict], None]]:
 
 
 def _hermes_await_gateway_decision(session_key: str, notify_cb: Callable[[dict], None],
-                                   data: dict) -> dict:
-    """tools.approval_gateway_wait._await_gateway_decision(...): queue + notify + block."""
+                                   data: dict, identity: Optional[str] = None) -> dict:
+    """tools.approval_gateway_wait._await_gateway_decision(...): queue + notify + block.
+
+    ``identity`` is the host's coalescing key (Hermes main after v0.23.1, upstream ``b73018f424``):
+    pending approvals with the same identity share one answer. It is passed only when the installed
+    Hermes accepts it, so older hosts keep working unchanged.
+    """
     try:
         from tools.approval_gateway_wait import _await_gateway_decision
     except (ImportError, AttributeError) as exc:
         raise _upstream_broken("tools.approval_gateway_wait._await_gateway_decision", exc) from exc
-    return _await_gateway_decision(session_key, notify_cb, data, surface="gateway")
+    kwargs: dict[str, Any] = {"surface": "gateway"}
+    if identity is not None and _accepts_keyword(_await_gateway_decision, "identity"):
+        kwargs["identity"] = identity
+    return _await_gateway_decision(session_key, notify_cb, data, **kwargs)
+
+
+def _accepts_keyword(func: Callable[..., Any], name: str) -> bool:
+    """True when *func* can be called with keyword *name* (unknown signature counts as no)."""
+    try:
+        params = inspect.signature(func).parameters
+    except (TypeError, ValueError):
+        return False
+    return name in params or any(p.kind is inspect.Parameter.VAR_KEYWORD for p in params.values())
 
 
 def _hermes_cli_prompt(command: str, description: str, *, allow_permanent: bool, allow_session: bool,
@@ -235,7 +253,12 @@ def redispatch(request: Any, entry: StashEntry, display_command: str, display_de
                 timer.daemon = True
                 timer.start()
             try:
-                decision = _hermes_await_gateway_decision(entry.session_key, notify_cb, data)
+                # Coalesce on the command the host asked about, never on the composed card text:
+                # the AI summary differs per call, so identical parallel commands would otherwise
+                # each raise their own card. The plugin only sees the host-redacted command, so
+                # this is the closest it can get to the host's own key (the executed command).
+                decision = _hermes_await_gateway_decision(entry.session_key, notify_cb, data,
+                                                          identity=request.command)
             finally:
                 if timer is not None:
                     timer.cancel()

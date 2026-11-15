@@ -35,7 +35,7 @@ GATEWAY_CASES = [
 @pytest.mark.parametrize("decision,expected", GATEWAY_CASES)
 def test_gateway_mapping(redispatch_mod, stash_mod, monkeypatch, decision, expected):
     monkeypatch.setattr(redispatch_mod, "_hermes_notify_cb", lambda sk: (lambda data: None))
-    monkeypatch.setattr(redispatch_mod, "_hermes_await_gateway_decision", lambda sk, cb, data: decision)
+    monkeypatch.setattr(redispatch_mod, "_hermes_await_gateway_decision", lambda sk, cb, data, **kw: decision)
     assert redispatch_mod.redispatch(make_request(), make_entry(stash_mod), "cmd", "desc") == expected
 
 
@@ -44,7 +44,7 @@ def test_gateway_mapping(redispatch_mod, stash_mod, monkeypatch, decision, expec
 def test_gateway_notify_failed_raises_for_builtin_fallback(redispatch_mod, stash_mod, monkeypatch, decision):
     """The card never reached anyone: that is a transport failure, not a user denial."""
     monkeypatch.setattr(redispatch_mod, "_hermes_notify_cb", lambda sk: (lambda data: None))
-    monkeypatch.setattr(redispatch_mod, "_hermes_await_gateway_decision", lambda sk, cb, data: decision)
+    monkeypatch.setattr(redispatch_mod, "_hermes_await_gateway_decision", lambda sk, cb, data, **kw: decision)
     with pytest.raises(RuntimeError, match="could not be delivered"):
         redispatch_mod.redispatch(make_request(), make_entry(stash_mod), "cmd", "desc")
 
@@ -55,10 +55,10 @@ def test_gateway_clamps_to_allowed_choices(redispatch_mod, stash_mod, monkeypatc
     monkeypatch.setattr(redispatch_mod, "_hermes_notify_cb", lambda sk: (lambda data: None))
     for sneaky in ("always", "session", "root", "ONCE"):
         monkeypatch.setattr(redispatch_mod, "_hermes_await_gateway_decision",
-                            lambda sk, cb, data, c=sneaky: {"resolved": True, "choice": c})
+                            lambda sk, cb, data, c=sneaky, **kw: {"resolved": True, "choice": c})
         assert redispatch_mod.redispatch(request, make_entry(stash_mod), "c", "d") == "deny"
     monkeypatch.setattr(redispatch_mod, "_hermes_await_gateway_decision",
-                        lambda sk, cb, data: {"resolved": True, "choice": "once"})
+                        lambda sk, cb, data, **kw: {"resolved": True, "choice": "once"})
     assert redispatch_mod.redispatch(request, make_entry(stash_mod), "c", "d") == "once"
 
 
@@ -66,7 +66,7 @@ def test_gateway_data_shape(redispatch_mod, stash_mod, monkeypatch):
     seen = {}
     monkeypatch.setattr(redispatch_mod, "_hermes_notify_cb", lambda sk: seen.setdefault("sk", sk) and (lambda d: None))
     monkeypatch.setattr(redispatch_mod, "_hermes_await_gateway_decision",
-                        lambda sk, cb, data: (seen.update(data=data, awaited=sk), {"resolved": True, "choice": "once"})[1])
+                        lambda sk, cb, data, **kw: (seen.update(data=data, awaited=sk), {"resolved": True, "choice": "once"})[1])
     request = make_request()
     request_id = request.request_id
     redispatch_mod.redispatch(request, make_entry(stash_mod), "DISPLAY CMD", "DISPLAY DESC")
@@ -138,8 +138,9 @@ def test_pinned_upstream_signatures():
     from tools import approval, approval_context, approval_gateway_wait, approval_prompt, interrupt, terminal_tool
 
     assert list(inspect.signature(approval._gateway_notify_cb).parameters) == ["session_key"]
-    assert list(inspect.signature(approval_gateway_wait._await_gateway_decision).parameters) == [
-        "session_key", "notify_cb", "approval_data", "surface"]
+    wait_params = list(inspect.signature(approval_gateway_wait._await_gateway_decision).parameters)
+    assert wait_params[:4] == ["session_key", "notify_cb", "approval_data", "surface"]
+    assert set(wait_params[4:]) <= {"identity"}  # optional coalescing key, Hermes main after v0.23.1
     params = inspect.signature(approval_prompt.prompt_dangerous_approval).parameters
     for name in ("allow_permanent", "allow_session", "smart_denied", "approval_callback"):
         assert name in params
@@ -161,7 +162,7 @@ def test_gateway_inner_wait_is_withdrawn_at_deadline(redispatch_mod, stash_mod, 
     monkeypatch.setattr(redispatch_mod, "_hermes_withdraw",
                         lambda sk, rid, cause="x": seen.update(w=(sk, rid)) or True)
 
-    def slow_wait(sk, cb, data):
+    def slow_wait(sk, cb, data, **kw):
         time.sleep(0.5)
         return {"resolved": True, "choice": "once"}
 
@@ -177,7 +178,7 @@ def test_gateway_deadline_timer_cancelled_when_wait_returns(redispatch_mod, stas
     monkeypatch.setattr(redispatch_mod, "_hermes_notify_cb", lambda sk: (lambda data: None))
     monkeypatch.setattr(redispatch_mod, "_hermes_withdraw", lambda *a, **k: seen.append(a) or True)
     monkeypatch.setattr(redispatch_mod, "_hermes_await_gateway_decision",
-                        lambda sk, cb, data: {"resolved": True, "choice": "deny"})
+                        lambda sk, cb, data, **kw: {"resolved": True, "choice": "deny"})
     redispatch_mod.redispatch(make_request(), make_entry(stash_mod), "c", "d", remaining_s=0.2)
     time.sleep(0.4)
     assert seen == []
@@ -233,3 +234,36 @@ def test_trust_error_detection(redispatch_mod):
     assert not redispatch_mod.hermes_is_llm_trust_error(TimeoutError("x"))
     from agent.plugin_llm import PluginLlmTrustError as Real
     assert redispatch_mod.hermes_is_llm_trust_error(Real("nope"))
+
+
+def test_gateway_identity_is_the_requested_command_not_the_card_text(redispatch_mod, stash_mod, monkeypatch):
+    """Identical parallel commands coalesce even though each card carries a different AI summary."""
+    seen = []
+    monkeypatch.setattr(redispatch_mod, "_hermes_notify_cb", lambda sk: (lambda data: None))
+    monkeypatch.setattr(redispatch_mod, "_hermes_await_gateway_decision",
+                        lambda sk, cb, data, **kw: (seen.append(kw), {"resolved": True, "choice": "once"})[1])
+    request = make_request()
+    redispatch_mod.redispatch(request, make_entry(stash_mod), "summary one\nrm -rf /tmp/x", "d")
+    redispatch_mod.redispatch(make_request(), make_entry(stash_mod), "summary two\nrm -rf /tmp/x", "d")
+    assert seen == [{"identity": request.command}] * 2 == [{"identity": "rm -rf /tmp/x"}] * 2
+
+
+def test_await_adapter_passes_identity_only_when_host_accepts_it(redispatch_mod, monkeypatch):
+    """Hermes main after v0.23.1 takes ``identity``; older hosts must not receive the keyword."""
+    from tools import approval_gateway_wait
+    calls = []
+
+    def new_host(session_key, notify_cb, approval_data, *, surface="gateway", identity=None):
+        calls.append(("new", surface, identity))
+        return {}
+
+    def old_host(session_key, notify_cb, approval_data, *, surface="gateway"):
+        calls.append(("old", surface))
+        return {}
+
+    monkeypatch.setattr(approval_gateway_wait, "_await_gateway_decision", new_host)
+    redispatch_mod._hermes_await_gateway_decision("s", None, {}, identity="abc")
+    redispatch_mod._hermes_await_gateway_decision("s", None, {})
+    monkeypatch.setattr(approval_gateway_wait, "_await_gateway_decision", old_host)
+    redispatch_mod._hermes_await_gateway_decision("s", None, {}, identity="abc")
+    assert calls == [("new", "gateway", "abc"), ("new", "gateway", None), ("old", "gateway")]
