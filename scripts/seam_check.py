@@ -22,14 +22,18 @@ import json
 import sys
 from typing import Any
 
-# (module, attribute, expected signature or None for non-callables, kind)
-# Signatures are inspect.signature() strings taken from Hermes v0.22.2 (2026.9.24).
-SEAMS: list[tuple[str, str, str | None]] = [
+# (module, attribute, expected signature(s) or None for non-callables)
+# Signatures are inspect.signature() strings taken from Hermes v0.22.2 (2026.9.24). A tuple lists
+# every shape the adapter handles, oldest first, when stable and main differ.
+SEAMS: list[tuple[str, str, str | tuple[str, ...] | None]] = [
     ("tools.approval", "_gateway_notify_cb", "(session_key: str)"),
     ("tools.approval", "withdraw_gateway_approval", "(session_key: str, request_id: str, cause: str) -> bool"),
     ("tools.approval", "resolve_gateway_approval", None),  # used only by tests; presence check
     ("tools.approval_gateway_wait", "_await_gateway_decision",
-     "(session_key: str, notify_cb, approval_data: dict, *, surface: str = 'gateway') -> dict"),
+     ("(session_key: str, notify_cb, approval_data: dict, *, surface: str = 'gateway') -> dict",
+      # main after v0.23.1 (upstream b73018f424): optional coalescing key, passed when present.
+      "(session_key: str, notify_cb, approval_data: dict, *, surface: str = 'gateway', "
+      "identity: str | None = None) -> dict")),
     ("tools.approval_prompt", "prompt_dangerous_approval",
      "(command: str, description: str, timeout_seconds: int | None = None, allow_permanent: bool = True, "
      "approval_callback=None, *, allow_session: bool = True, smart_denied: bool = False, "
@@ -79,8 +83,9 @@ def check() -> dict:
             continue
         actual = _sig(obj)
         row["signature"] = actual
-        if expected is not None and actual != expected:
-            row.update(status="SIGNATURE_CHANGED", expected=expected)
+        accepted = (expected,) if isinstance(expected, str) else expected
+        if accepted is not None and actual not in accepted:
+            row.update(status="SIGNATURE_CHANGED", expected="\n          or ".join(accepted))
             ok = False
         results.append(row)
 
